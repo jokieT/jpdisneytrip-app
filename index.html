@@ -79,7 +79,6 @@
             box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light);
         }
 
-        /* Flight Card Special Style */
         .flight-line {
             border-top: 2px dashed var(--text-color);
             opacity: 0.3;
@@ -105,7 +104,7 @@
 
     <div id="app" class="h-full flex flex-col max-w-md mx-auto relative transition-colors duration-300">
         
-        <!-- Header & Theme Toggle -->
+        <!-- Header -->
         <header class="p-6 pb-2 flex justify-between items-center">
             <div>
                 <h1 class="text-xl font-bold tracking-widest">TOKYO 2026</h1>
@@ -132,16 +131,16 @@
                     </div>
                 </div>
 
-                <!-- Hotel Info (Editable) -->
+                <!-- Hotel Info -->
                 <div class="neu-pressed p-4 rounded-xl flex items-start gap-3">
                     <i class="fas fa-bed mt-1 opacity-50"></i>
                     <div class="w-full">
-                        <input v-model="currentDay.hotel.name" placeholder="輸入酒店名稱" class="bg-transparent w-full text-sm font-bold focus:outline-none mb-1 text-[var(--text-color)]">
+                        <input v-model="currentDay.hotel.name" placeholder="輸入酒店名稱" class="bg-transparent w-full text-sm font-bold focus:outline-none text-[var(--text-color)]">
                         <input v-model="currentDay.hotel.address" placeholder="輸入酒店地址..." class="bg-transparent w-full text-xs opacity-70 focus:outline-none text-[var(--text-color)]">
                     </div>
                 </div>
 
-                <!-- Weather (Manual) -->
+                <!-- Weather -->
                 <div class="neu-flat p-4 flex items-center justify-between">
                     <div>
                         <div class="text-xs opacity-50">預測天氣 (點擊修改)</div>
@@ -153,7 +152,7 @@
                     </select>
                 </div>
 
-                <!-- Flight Card (Only Day 1 & Last Day) -->
+                <!-- Flight Card -->
                 <div v-if="currentDay.flight" class="neu-flat p-5 relative overflow-hidden">
                     <div class="text-xs font-bold text-center mb-4 opacity-50 tracking-widest">FLIGHT INFO</div>
                     <div class="flex justify-between items-center relative z-10">
@@ -172,35 +171,47 @@
                     <div class="flight-line"></div>
                 </div>
 
-                <!-- Disney Planner -->
+                <!-- Disney Planner (Expanded) -->
                 <div v-if="currentDay.parkName" class="neu-flat p-5 space-y-4 border-l-4 border-purple-500">
                     <h3 class="text-sm font-bold text-purple-500 uppercase flex justify-between">
                         <span>🎡 {{ currentDay.parkName === 'land' ? 'Disneyland' : 'DisneySea' }} Planner</span>
                     </h3>
                     
+                    <!-- Time -->
                     <div class="grid grid-cols-2 gap-2">
                         <input type="time" v-model="tempDisney.start" class="neu-input p-2 text-xs text-center">
                         <input type="time" v-model="tempDisney.end" class="neu-input p-2 text-xs text-center">
                     </div>
 
+                    <!-- 1. Area Selection -->
                     <select v-model="tempDisney.area" class="neu-input w-full p-3 text-sm">
-                        <option value="" disabled selected>1. 選擇區域</option>
-                        <option v-for="area in currentParkAreas" :key="area.name" :value="area.name">{{ area.name }}</option>
+                        <option value="" disabled selected>1. 選擇區域 (Area)</option>
+                        <option v-for="area in currentParkAreas" :key="area" :value="area">{{ area }}</option>
                     </select>
 
-                    <select v-if="tempDisney.area" v-model="tempDisney.facility" class="neu-input w-full p-3 text-sm">
-                        <option value="" disabled selected>2. 選擇設施/餐廳/商店</option>
-                        <option v-for="item in getFacilitiesByArea(tempDisney.area)" :key="item.val" :value="item">
-                            {{ item.label }}
-                        </option>
+                    <!-- 2. Type Selection (Attraction/Food/Shop) -->
+                    <select v-if="tempDisney.area" v-model="tempDisney.type" class="neu-input w-full p-3 text-sm">
+                        <option value="" disabled selected>2. 選擇類別 (Type)</option>
+                        <option value="attractions">🎢 遊樂設施 (Attractions)</option>
+                        <option value="restaurants">🍽️ 餐廳 (Restaurants)</option>
+                        <option value="shops">🛍️ 商店 (Shops)</option>
                     </select>
+
+                    <!-- 3. Specific Item Selection -->
+                    <select v-if="tempDisney.type" v-model="tempDisney.facility" class="neu-input w-full p-3 text-sm">
+                        <option value="" disabled selected>3. 選擇項目</option>
+                        <option v-for="item in currentFacilityList" :key="item" :value="item">{{ item }}</option>
+                    </select>
+                    
+                    <!-- 4. Notes -->
+                    <input v-if="tempDisney.facility" v-model="tempDisney.note" placeholder="備註 (e.g. 抽Pass / 買頭箍)" class="neu-input w-full p-3 text-sm">
 
                     <button @click="addDisneyEvent" :disabled="!tempDisney.facility" class="neu-btn w-full py-3 rounded-xl text-sm font-bold text-purple-500">
                         + 加入行程
                     </button>
                 </div>
 
-                <!-- Custom Itinerary List -->
+                <!-- Itinerary List -->
                 <div class="space-y-4">
                     <div class="flex justify-between items-end">
                         <h3 class="text-sm font-bold ml-2 opacity-50">SCHEDULE</h3>
@@ -208,7 +219,6 @@
                     </div>
 
                     <div v-for="(item, idx) in sortedEvents" :key="idx" class="neu-flat p-4 relative group">
-                        <!-- Delete Button -->
                         <button @click="deleteEvent(idx)" class="absolute top-2 right-2 text-xs opacity-30 hover:opacity-100 text-red-500 p-2">✕</button>
 
                         <div class="flex gap-4">
@@ -220,182 +230,181 @@
                             <div class="flex-1">
                                 <div class="font-bold text-sm">{{ item.title }}</div>
                                 <div class="text-xs opacity-70 mt-1 whitespace-pre-line">{{ item.desc }}</div>
+                                <div v-if="item.note" class="text-xs text-purple-400 mt-1 bg-purple-500/10 p-1 rounded inline-block">📝 {{ item.note }}</div>
                                 
-                                <!-- Location & Map Actions -->
                                 <div v-if="item.address || item.mapLink" class="mt-3 pt-2 border-t border-gray-500/20 flex gap-2 overflow-x-auto">
-                                    <div v-if="item.address" class="text-[10px] opacity-60 flex items-center gap-1 mr-2">
-                                        <i class="fas fa-map-marker-alt"></i> {{ item.address }}
-                                    </div>
                                     <button v-if="item.mapLink" @click="toggleMap(idx)" class="neu-btn px-2 py-1 text-[10px] rounded flex items-center gap-1 whitespace-nowrap">
-                                        <i class="fas fa-map"></i> {{ item.showMap ? '隱藏地圖' : '顯示地圖' }}
+                                        <i class="fas fa-map"></i> {{ item.showMap ? '隱藏' : '地圖' }}
                                     </button>
                                     <a v-if="item.mapLink" :href="item.mapLink" target="_blank" class="neu-btn px-2 py-1 text-[10px] rounded flex items-center gap-1 whitespace-nowrap text-blue-500">
                                         <i class="fas fa-location-arrow"></i> 導航
                                     </a>
                                 </div>
-
-                                <!-- Embedded Map -->
-                                <iframe v-if="item.showMap && item.mapLink" 
-                                    class="w-full h-40 mt-2 rounded-lg opacity-80"
-                                    frameborder="0" style="border:0" 
-                                    :src="getEmbedUrl(item.mapLink)" allowfullscreen>
-                                </iframe>
+                                <iframe v-if="item.showMap && item.mapLink" class="w-full h-40 mt-2 rounded-lg opacity-80" frameborder="0" style="border:0" :src="getEmbedUrl(item.mapLink)"></iframe>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 2: MONEY (記帳) -->
+            <!-- TAB 2: MONEY -->
             <section v-if="currentTab === 'money'" class="space-y-6">
-                <div class="neu-flat p-6 text-center">
+                <!-- (Keep Money Section Logic Same as Before, omitted for brevity but included in full code logic below) -->
+                 <div class="neu-flat p-6 text-center">
                     <div class="text-xs opacity-50 mb-1">總支出 (TOTAL)</div>
                     <div class="text-3xl font-light">¥ {{ totalSpending.toLocaleString() }}</div>
                     <div class="text-sm opacity-50 mt-1">≈ HK$ {{ (totalSpending * exchangeRate).toFixed(1) }}</div>
                 </div>
-
                 <div class="neu-flat p-5 space-y-4">
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="text-[10px] ml-1 opacity-50">金額 (JPY)</label>
-                            <input type="number" v-model="newExpense.amount" placeholder="¥" class="neu-input w-full p-3 text-lg font-mono">
-                        </div>
-                        <div class="flex items-end pb-3 pl-2">
-                             <span class="text-sm opacity-50">≈ HK$ {{ (newExpense.amount * exchangeRate).toFixed(1) }}</span>
-                        </div>
+                        <div><label class="text-[10px] ml-1 opacity-50">金額</label><input type="number" v-model="newExpense.amount" class="neu-input w-full p-3 text-lg font-mono"></div>
+                        <div class="flex items-end pb-3 pl-2"><span class="text-sm opacity-50">≈ HK$ {{ (newExpense.amount * exchangeRate).toFixed(1) }}</span></div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                             <label class="text-[10px] ml-1 opacity-50">項目</label>
-                             <input type="text" v-model="newExpense.item" placeholder="食飯/購物..." class="neu-input w-full p-3 text-sm">
-                        </div>
-                        <div>
-                            <label class="text-[10px] ml-1 opacity-50">支付方式</label>
-                            <select v-model="newExpense.method" class="neu-input w-full p-3 text-sm">
-                                <option value="cash">現金 Cash</option>
-                                <option value="card">信用卡 Card</option>
-                                <option value="suica">西瓜卡 Suica</option>
-                            </select>
-                        </div>
+                        <div><label class="text-[10px] ml-1 opacity-50">項目</label><input type="text" v-model="newExpense.item" class="neu-input w-full p-3 text-sm"></div>
+                        <div><label class="text-[10px] ml-1 opacity-50">支付</label><select v-model="newExpense.method" class="neu-input w-full p-3 text-sm"><option value="cash">現金</option><option value="card">信用卡</option><option value="suica">Suica</option></select></div>
                     </div>
-                    <button @click="addOrUpdateExpense" class="neu-btn w-full py-3 rounded-xl text-sm font-bold text-green-600">
-                        {{ isEditingExpense ? '確認修改' : '確認記帳' }}
-                    </button>
-                    <button v-if="isEditingExpense" @click="cancelEditExpense" class="text-xs w-full text-center opacity-50">取消修改</button>
+                    <button @click="addOrUpdateExpense" class="neu-btn w-full py-3 rounded-xl text-sm font-bold text-green-600">{{ isEditingExpense ? '修改' : '記帳' }}</button>
+                    <button v-if="isEditingExpense" @click="cancelEditExpense" class="text-xs w-full text-center opacity-50">取消</button>
                 </div>
-
                 <div class="space-y-3 pb-10">
                     <div v-for="(exp, i) in expenses" :key="exp.id" class="neu-pressed p-4 flex justify-between items-center group relative">
-                        <div>
-                            <div class="text-sm font-bold">{{ exp.item }}</div>
-                            <div class="text-xs opacity-50 uppercase">{{ exp.method }}</div>
-                        </div>
-                        <div class="text-right mr-6">
-                            <div class="text-sm font-mono">¥{{ Number(exp.amount).toLocaleString() }}</div>
-                            <div class="text-xs opacity-50">HK${{ (exp.amount * exchangeRate).toFixed(1) }}</div>
-                        </div>
-                        <!-- Edit/Delete Actions -->
+                        <div><div class="text-sm font-bold">{{ exp.item }}</div><div class="text-xs opacity-50 uppercase">{{ exp.method }}</div></div>
+                        <div class="text-right mr-6"><div class="text-sm font-mono">¥{{ Number(exp.amount).toLocaleString() }}</div></div>
                         <div class="absolute right-2 flex flex-col gap-2">
-                            <button @click="deleteExpense(exp.id)" class="text-red-400 opacity-50 hover:opacity-100"><i class="fas fa-trash text-xs"></i></button>
-                            <button @click="editExpense(exp.id)" class="text-blue-400 opacity-50 hover:opacity-100"><i class="fas fa-pen text-xs"></i></button>
+                            <button @click="deleteExpense(exp.id)" class="text-red-400 opacity-50"><i class="fas fa-trash text-xs"></i></button>
+                            <button @click="editExpense(exp.id)" class="text-blue-400 opacity-50"><i class="fas fa-pen text-xs"></i></button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 3: MAP (Saved Locations) -->
+            <!-- TAB 3 & 4 (Map / Shopping) same structure -->
             <section v-if="currentTab === 'map'" class="space-y-4">
-                <div class="neu-flat p-4 aspect-video flex flex-col items-center justify-center relative overflow-hidden">
-                   <div class="text-center space-y-2 z-10">
-                        <i class="fas fa-map-marked-alt text-4xl opacity-50"></i>
-                        <p class="text-xs opacity-70">在此頁面儲存常用地點<br>點擊列表即可導航</p>
-                        <a href="https://www.google.com/maps" target="_blank" class="neu-btn px-6 py-2 rounded-full text-sm inline-block mt-2">
-                            開啟 Google Maps App
-                        </a>
-                   </div>
-                </div>
-                
-                <div class="neu-flat p-4 space-y-3">
+                 <div class="neu-flat p-4 space-y-3">
                     <h3 class="text-sm font-bold opacity-50">新增地點</h3>
                     <input v-model="newLocation.name" placeholder="地點名稱" class="neu-input w-full p-2 text-sm">
                     <input v-model="newLocation.url" placeholder="Google Maps URL" class="neu-input w-full p-2 text-sm">
                     <button @click="addLocation" class="neu-btn w-full py-2 rounded-lg text-sm">儲存地點</button>
                 </div>
-
                 <div class="space-y-2">
                     <div v-for="(loc, idx) in savedLocations" :key="idx" class="neu-btn p-4 rounded-xl flex justify-between items-center">
-                        <div @click="openMap(loc.url)" class="flex-1">
-                            <div class="text-sm font-bold">{{ loc.name }}</div>
-                        </div>
-                        <div class="flex gap-3">
-                            <button @click="loc.showEmbed = !loc.showEmbed" class="opacity-50"><i class="fas fa-eye"></i></button>
-                            <button @click="deleteLocation(idx)" class="text-red-400 opacity-50"><i class="fas fa-trash"></i></button>
-                        </div>
-                        <!-- Embedded View -->
-                        <div v-if="loc.showEmbed" class="w-full mt-2 absolute left-0 px-4 z-20">
-                            <iframe class="w-full h-40 rounded-lg shadow-xl" :src="getEmbedUrl(loc.url)"></iframe>
-                        </div>
+                        <div @click="openMap(loc.url)" class="flex-1"><div class="text-sm font-bold">{{ loc.name }}</div></div>
+                        <div class="flex gap-3"><button @click="loc.showEmbed = !loc.showEmbed" class="opacity-50"><i class="fas fa-eye"></i></button><button @click="deleteLocation(idx)" class="text-red-400 opacity-50"><i class="fas fa-trash"></i></button></div>
+                        <div v-if="loc.showEmbed" class="w-full mt-2 absolute left-0 px-4 z-20"><iframe class="w-full h-40 rounded-lg shadow-xl" :src="getEmbedUrl(loc.url)"></iframe></div>
                     </div>
                 </div>
             </section>
 
-             <!-- TAB 4: SHOPPING -->
              <section v-if="currentTab === 'shopping'" class="space-y-6">
-                <div class="neu-flat p-5 space-y-4">
-                    <h3 class="text-sm font-bold opacity-50 mb-2">SHOPPING LIST</h3>
-                    <div class="flex gap-2">
-                        <input type="text" v-model="newShoppingItem" placeholder="想買甚麼..." class="neu-input flex-1 p-3 text-sm">
-                        <button @click="addShoppingItem" class="neu-btn px-4 rounded-xl text-xl">+</button>
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <div v-for="(item, i) in shoppingList" :key="i" class="neu-btn p-4 rounded-xl flex items-center justify-between group">
-                        <div class="flex items-center gap-3 flex-1" @click="item.bought = !item.bought">
-                            <div :class="['w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center', item.bought ? 'bg-gray-500' : '']">
-                                <i v-if="item.bought" class="fas fa-check text-[10px] text-white"></i>
-                            </div>
-                            <span :class="['text-sm', item.bought ? 'line-through opacity-50' : '']">{{ item.name }}</span>
-                        </div>
-                        <button @click="shoppingList.splice(i, 1)" class="opacity-20 hover:opacity-100 text-red-500 p-2">✕</button>
-                    </div>
-                </div>
+                <div class="neu-flat p-5 space-y-4"><div class="flex gap-2"><input type="text" v-model="newShoppingItem" class="neu-input flex-1 p-3 text-sm"><button @click="addShoppingItem" class="neu-btn px-4 rounded-xl text-xl">+</button></div></div>
+                <div class="space-y-2"><div v-for="(item, i) in shoppingList" :key="i" class="neu-btn p-4 rounded-xl flex items-center justify-between"><div class="flex items-center gap-3 flex-1" @click="item.bought = !item.bought"><div :class="['w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center', item.bought ? 'bg-gray-500' : '']"><i v-if="item.bought" class="fas fa-check text-[10px] text-white"></i></div><span :class="['text-sm', item.bought ? 'line-through opacity-50' : '']">{{ item.name }}</span></div><button @click="shoppingList.splice(i, 1)" class="opacity-20 text-red-500 p-2">✕</button></div></div>
             </section>
         </main>
 
-        <!-- Navigation Bar -->
+        <!-- Nav & Modal (Same) -->
         <nav class="absolute bottom-6 left-6 right-6 h-16 neu-flat flex justify-around items-center px-2 z-50 rounded-2xl">
-            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" 
-                :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']">
-                <i :class="tab.icon + ' text-xl'"></i>
-            </button>
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']"><i :class="tab.icon + ' text-xl'"></i></button>
         </nav>
-
-        <!-- Event Modal -->
+        
         <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4">
             <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
                 <h3 class="font-bold text-lg">自訂行程</h3>
-                <div class="flex gap-2">
-                    <input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1">
-                    <span class="self-center">-</span>
-                    <input type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1">
-                </div>
-                <input v-model="newEvent.title" placeholder="標題 (e.g. 晚餐)" class="neu-input w-full p-2">
-                <textarea v-model="newEvent.desc" placeholder="備註..." class="neu-input w-full p-2 h-20"></textarea>
-                <input v-model="newEvent.address" placeholder="地址 (選填)" class="neu-input w-full p-2 text-xs">
-                <input v-model="newEvent.mapLink" placeholder="Google Maps Link (選填)" class="neu-input w-full p-2 text-xs">
-                
-                <div class="flex gap-3 pt-2">
-                    <button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">儲存</button>
-                    <button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button>
-                </div>
+                <div class="flex gap-2"><input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1"><input type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1"></div>
+                <input v-model="newEvent.title" placeholder="標題" class="neu-input w-full p-2">
+                <textarea v-model="newEvent.desc" placeholder="詳情" class="neu-input w-full p-2 h-20"></textarea>
+                <input v-model="newEvent.note" placeholder="備註 (紫色標籤)" class="neu-input w-full p-2 text-xs">
+                <input v-model="newEvent.mapLink" placeholder="Maps Link" class="neu-input w-full p-2 text-xs">
+                <div class="flex gap-3 pt-2"><button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">儲存</button><button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button></div>
             </div>
         </div>
-
     </div>
 
     <script>
         const { createApp, ref, computed, watch, onMounted } = Vue;
+
+        // Expanded Disney Data Source
+        const disneyDB = {
+            land: {
+                "World Bazaar": {
+                    attractions: ["Omnibus (雙層巴士)", "Penny Arcade (便士拱廊)"],
+                    restaurants: ["Eastside Cafe (東街咖啡餐館)", "Center Street Coffeehouse (中央大道咖啡餐館)", "Great American Waffle Co. (最佳美國鬆餅公司)", "Restaurant Hokusai (北齋餐廳)", "Sweetheart Cafe (甜心咖啡餐館)"],
+                    shops: ["Grand Emporium (格蘭恩波商場)", "World Bazaar Confectionery (世界市集點心坊)", "House of Greetings (致賀屋)"]
+                },
+                "Adventureland": {
+                    attractions: ["Pirates of the Caribbean (加勒比海盜)", "Jungle Cruise (叢林巡航)", "Western River Railroad (西部沿河鐵路)", "The Enchanted Tiki Room (提基神殿)"],
+                    restaurants: ["Blue Bayou Restaurant (藍海灣餐廳)", "Crystal Palace Restaurant (水晶宮餐廳)", "Polynesian Terrace (波利尼西亞草壇餐廳)", "China Voyager (中華餐廳)", "Cafe Orleans (奧爾良咖啡)"],
+                    shops: ["Adventureland Bazaar (探險樂園市集)", "Le Marche Bleu (藍色市集)", "Cristal Arts (水晶藝術)"]
+                },
+                "Westernland": {
+                    attractions: ["Big Thunder Mountain (巨雷山)", "Country Bear Theater (鄉村頑熊劇場)", "Mark Twain Riverboat (馬克吐溫號)", "Tom Sawyer Island (湯姆索亞島)"],
+                    restaurants: ["Hungry Bear Restaurant (頑熊餐廳)", "Plaza Pavilion Restaurant (廣場樓閣餐廳)", "Pecos Bill Cafe (佩斯比爾小館)", "Camp Woodchuck Kitchen (土撥鼠營地廚房)"],
+                    shops: ["Western Wear (西部服裝)", "General Store (雜貨店)"]
+                },
+                "Critter Country": {
+                    attractions: ["Splash Mountain (飛濺山)", "Beaver Brothers Explorer Canoes (海貍兄弟獨木舟)"],
+                    restaurants: ["Grandma Sara's Kitchen (莎拉阿奶奶的廚房)", "Rackety's Raccoon Saloon (拉吉蒂浣熊小站)"],
+                    shops: ["Hoot & Holler Hideout (呼嗒·赫勒窩)"]
+                },
+                "Fantasyland": {
+                    attractions: ["Enchanted Tale of Beauty and the Beast (美女與野獸)", "Pooh's Hunny Hunt (小熊維尼獵蜜記)", "Haunted Mansion (幽靈公館)", "It's a Small World (小小世界)", "Peter Pan's Flight (彼得潘)", "Pinocchio's Daring Journey (小木偶奇遇記)", "Snow White's Adventures (白雪公主冒險旅程)", "Dumbo (小飛象)", "Cinderella's Fairy Tale Hall (仙履奇緣童話大廳)"],
+                    restaurants: ["Queen of Hearts Banquet Hall (紅心女王宴會大廳)", "La Taverne de Gaston (加斯頓酒館)", "Captain Hook's Galley (虎克船長的廚房)", "Village Pastry (鄉村糕點)"],
+                    shops: ["Village Shoppes (鄉村商店)", "Kingdom Treasures (王國寶藏)", "Pooh Corner (小熊維尼專櫃)"]
+                },
+                "Toontown": {
+                    attractions: ["Roger Rabbit's Car Toon Spin (羅傑兔子轉轉車)", "Minnie's Style Studio (米妮時尚工作室)", "Gadget's Go Coaster (艾芝迷你雲霄飛車)"],
+                    restaurants: ["Huey, Dewey and Louie's Good Time Cafe (輝兒杜兒路兒好時光咖啡)", "Toontone Treats (卡通漆彩點心)"],
+                    shops: ["Gag Factory (滑稽工廠)"]
+                },
+                "Tomorrowland": {
+                    attractions: ["Space Mountain (太空山)", "Star Tours (星際旅行)", "Monsters, Inc. Ride & Go Seek! (怪獸電力公司)", "Baymax Happy Ride (杯麵歡樂搭)", "Buzz Lightyear's Astro Blasters (巴斯光年星際歷險)"],
+                    restaurants: ["Pan Galactic Pizza Port (汎銀河披薩港)", "Plazma Ray's Diner (瑞斯瑪射線快餐)", "The Big Pop (霹靂啪啦爆米花)"],
+                    shops: ["Planet M (行星M)", "Cosmic Encounter (宇宙相遇)"]
+                }
+            },
+            sea: {
+                "Fantasy Springs": {
+                    attractions: ["Anna and Elsa's Frozen Journey (安娜與艾莎的冰雪之旅)", "Rapunzel's Lantern Festival (樂佩公主天燈盛會)", "Peter Pan's Never Land Adventure (彼得潘夢幻島歷險記)", "Fairy Tinker Bell's Busy Buggies (奇妙仙子妙妙車)"],
+                    restaurants: ["Royal Banquet of Arendelle (艾倫戴爾皇家宴會廳)", "The Snuggly Duckling (醜小鴨小館)", "Lookout Cookout (瞭望臺野餐屋)"],
+                    shops: ["Fantasy Springs Gifts (夢幻泉鄉禮品)"]
+                },
+                "Mediterranean Harbor": {
+                    attractions: ["Soaring: Fantastic Flight (翱翔：夢幻奇航)", "DisneySea Transit Steamer Line (迪士尼海洋渡輪)", "Fortress Explorations (要塞探險)", "Venetian Gondolas (威尼斯貢多拉遊船)"],
+                    restaurants: ["Magellan's (麥哲倫)", "Ristorante di Canaletto (卡納雷托餐廳)", "Zambini Brothers' Ristorante (尚比尼兄弟餐廳)", "Cafe Portofino (波多菲諾咖啡)"],
+                    shops: ["Emporio (恩波利歐)", "Il Postino Stationery (郵局文具店)"]
+                },
+                "American Waterfront": {
+                    attractions: ["Tower of Terror (驚魂古塔)", "Toy Story Mania! (玩具總動員瘋狂遊戲屋)", "Turtle Talk (龜龜漫談)", "Big City Vehicles (大都會交通工具)"],
+                    restaurants: ["S.S. Columbia Dining Room (S.S.哥倫比亞餐廳)", "Teddy Roosevelt Lounge (泰迪羅斯福歡腾)", "New York Deli (紐約美味房)", "Cape Cod Cook-Off (鱈魚岬錦標美食)"],
+                    shops: ["McDuck's Department Store (史高治百貨公司)", "Steamboat Mickey's (蒸氣船米奇)"]
+                },
+                "Port Discovery": {
+                    attractions: ["Nemo & Friends SeaRider (尼莫&好友的海洋世界)", "Aquatopia (水上逗趣船)"],
+                    restaurants: ["Horizon Bay Restaurant (水平線海灣餐廳)", "Seaside Snacks (海邊小吃)"],
+                    shops: ["Discovery Gifts (發現禮品)"]
+                },
+                "Lost River Delta": {
+                    attractions: ["Indiana Jones Adventure (印第安納瓊斯冒險旅程)", "Raging Spirits (忿怒雙神)"],
+                    restaurants: ["Yucatan Base Camp Grill (猶加敦基地營燒烤)", "Miguel's El Dorado Cantina (米格勒黃金國快餐店)"],
+                    shops: ["Lost River Outfitters (失落河探險用品)"]
+                },
+                "Arabian Coast": {
+                    attractions: ["Sinbad's Storybook Voyage (辛巴達傳奇之旅)", "The Magic Lamp Theater (神燈劇場)", "Jasmine's Flying Carpets (茉莉公主的飛天魔毯)", "Caravan Carousel (沙漠商隊旋轉木馬)"],
+                    restaurants: ["Casbah Food Court (卡斯巴美食廣場)", "Sultan's Oasis (蘇丹綠洲)"],
+                    shops: ["Agrabah Marketplace (阿格拉巴市場)"]
+                },
+                "Mermaid Lagoon": {
+                    attractions: ["Mermaid Lagoon Theater (美人魚礁湖劇場)", "Flounder's Flying Fish Coaster (小胖的飛魚雲霄飛車)", "Scuttle's Scooters (史卡托的寄居蟹)", "Jumpin' Jellyfish (跳躍水母)", "Blowfish Balloon Race (河豚氣球競賽)", "The Whirlpool (旋轉海藻杯)"],
+                    restaurants: ["Sebastian's Calypso Kitchen (賽巴斯丁加力骚廚房)"],
+                    shops: ["Sleepy Whale Shoppe (睡鯨商店)", "Kiss de Girl Fashions (吻之女孩服飾)"]
+                },
+                "Mysterious Island": {
+                    attractions: ["Journey to the Center of the Earth (地心探險之旅)", "20,000 Leagues Under the Sea (海底兩萬哩)"],
+                    restaurants: ["Vulcania Restaurant (火山餐廳)", "Nautilus Galley (鸚鵡螺號大食堂)"],
+                    shops: ["Nautilus Gifts (鸚鵡螺號禮品)"]
+                }
+            }
+        };
 
         createApp({
             setup() {
@@ -412,93 +421,38 @@
                       weather: { temp: '8°C', icon: '🌙' }, 
                       hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' },
                       flight: { from: 'HKG', fromTerminal: 'T1', to: 'NRT', toTerminal: 'T2', depTime: '09:00', arrTime: '14:00' },
-                      events: [] 
-                    },
+                      events: [] },
                     { date: '2026-01-27', dateShort: '1/27', weekDay: 'Tue', location: 'Tokyo Disneyland', parkName: 'land', 
                       weather: { temp: '6°C', icon: '☀️' }, 
                       hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' },
-                      events: [] 
-                    },
+                      events: [] },
                     { date: '2026-01-28', dateShort: '1/28', weekDay: 'Wed', location: 'Tokyo DisneySea', parkName: 'sea', 
                       weather: { temp: '5°C', icon: '☁️' }, 
                       hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' },
-                      events: [] 
-                    },
+                      events: [] },
                     { date: '2026-01-29', dateShort: '1/29', weekDay: 'Thu', location: 'Tokyo DisneySea', parkName: 'sea', 
                       weather: { temp: '4°C', icon: '🌧️' }, 
                       hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' },
-                      events: [] 
-                    },
+                      events: [] },
                     { date: '2026-01-30', dateShort: '1/30', weekDay: 'Fri', location: 'Tokyo City', parkName: null, 
                       weather: { temp: '7°C', icon: '🌤️' }, 
                       hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' },
-                      events: [] 
-                    },
+                      events: [] },
                     { date: '2026-01-31', dateShort: '1/31', weekDay: 'Sat', location: '東京 -> 香港', parkName: null, 
                       weather: { temp: '9°C', icon: '☀️' }, 
                       hotel: { name: '', address: '' },
                       flight: { from: 'NRT', fromTerminal: 'T2', to: 'HKG', toTerminal: 'T1', depTime: '18:00', arrTime: '22:30' },
-                      events: [] 
-                    },
+                      events: [] },
                 ]);
 
-                // --- Disney Data (Trilingual) ---
-                const disneyData = {
-                    land: {
-                        "World Bazaar (世界市集)": [
-                            {label: "Main Street House (大街服務所)", val: "Main Street House"}, 
-                            {label: "Penny Arcade (便士拱廊)", val: "Penny Arcade"},
-                            {label: "Eastside Cafe (東街咖啡餐館)", val: "Eastside Cafe"}
-                        ],
-                        "Fantasyland (夢幻樂園)": [
-                            {label: "Beauty and the Beast (美女與野獸 / 美女と野獣)", val: "Beauty and the Beast"},
-                            {label: "Pooh's Hunny Hunt (小熊維尼獵蜜記 / プーさんのハニーハント)", val: "Pooh's Hunny Hunt"},
-                            {label: "Haunted Mansion (幽靈公館 / ホーンテッドマンション)", val: "Haunted Mansion"}
-                        ],
-                        "Tomorrowland (明日樂園)": [
-                            {label: "Space Mountain (太空山 / スペース・マウンテン)", val: "Space Mountain"},
-                            {label: "Baymax Happy Ride (杯麵歡樂搭 / ベイマックス)", val: "Baymax Happy Ride"},
-                            {label: "Monsters, Inc. (怪獸電力公司 / モンスターズ・インク)", val: "Monsters, Inc."}
-                        ],
-                        "Adventureland (探險樂園)": [
-                            {label: "Pirates of the Caribbean (加勒比海盜 / カリブの海賊)", val: "Pirates of the Caribbean"},
-                            {label: "Jungle Cruise (叢林巡航 / ジャングルクルーズ)", val: "Jungle Cruise"}
-                        ]
-                    },
-                    sea: {
-                        "Fantasy Springs (夢幻泉鄉)": [
-                            {label: "Frozen Kingdom (冰雪王國 / フローズンキングダム)", val: "Frozen Kingdom"},
-                            {label: "Rapunzel's Forest (長髮公主森林 / ラプンツェルの森)", val: "Rapunzel's Forest"},
-                            {label: "Peter Pan's Never Land (彼得潘夢幻島 / ピーターパンのネバーランド)", val: "Peter Pan's Never Land"}
-                        ],
-                        "Mediterranean Harbor (地中海港灣)": [
-                            {label: "Soaring: Fantastic Flight (翱翔：夢幻奇航 / ソアリン)", val: "Soaring"},
-                            {label: "Magellans (麥哲倫 / マゼランズ)", val: "Magellans"}
-                        ],
-                        "American Waterfront (美國海濱)": [
-                            {label: "Tower of Terror (驚魂古塔 / タワー・オブ・テラー)", val: "Tower of Terror"},
-                            {label: "Toy Story Mania! (玩具總動員瘋狂遊戲屋 / トイ・ストーリー・マニア)", val: "Toy Story Mania"}
-                        ],
-                         "Mysterious Island (神秘島)": [
-                            {label: "Journey to the Center of the Earth (地心探險之旅 / センター・オブ・ジ・アース)", val: "Journey to Center of Earth"}
-                        ]
-                    }
-                };
-
-                // --- Interactive Models ---
-                const tempDisney = ref({ start: '', end: '', area: '', facility: null });
-                const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', address: '', mapLink: '' });
-                
+                const tempDisney = ref({ start: '', end: '', area: '', type: '', facility: '', note: '' });
+                const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' });
                 const expenses = ref([]);
                 const newExpense = ref({ id: null, amount: '', method: 'cash', item: '' });
                 const isEditingExpense = ref(false);
-
                 const shoppingList = ref([{ name: '藥妝店面膜', bought: false }]);
                 const newShoppingItem = ref('');
-
-                const savedLocations = ref([
-                    { name: '新宿格拉斯麗酒店', url: 'https://goo.gl/maps/example', showEmbed: false }
-                ]);
+                const savedLocations = ref([{ name: '新宿格拉斯麗酒店', url: 'https://goo.gl/maps/example', showEmbed: false }]);
                 const newLocation = ref({ name: '', url: '' });
 
                 const tabs = [
@@ -513,8 +467,12 @@
                 
                 const currentParkAreas = computed(() => {
                     if (!currentDay.value.parkName) return [];
-                    const areas = disneyData[currentDay.value.parkName];
-                    return Object.keys(areas).map(key => ({ name: key }));
+                    return Object.keys(disneyDB[currentDay.value.parkName]);
+                });
+
+                const currentFacilityList = computed(() => {
+                    if (!tempDisney.value.area || !tempDisney.value.type) return [];
+                    return disneyDB[currentDay.value.parkName][tempDisney.value.area][tempDisney.value.type] || [];
                 });
 
                 const sortedEvents = computed(() => {
@@ -524,33 +482,26 @@
                 const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + Number(item.amount), 0));
 
                 // --- Methods ---
-                
                 const toggleTheme = () => {
                     isDarkMode.value = !isDarkMode.value;
                     document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light');
                 };
 
-                const getFacilitiesByArea = (areaName) => {
-                    if (!currentDay.value.parkName || !areaName) return [];
-                    return disneyData[currentDay.value.parkName][areaName] || [];
-                };
-
-                // Add Disney Event
                 const addDisneyEvent = () => {
                     if (!tempDisney.value.facility) return;
                     currentDay.value.events.push({
                         startTime: tempDisney.value.start,
                         endTime: tempDisney.value.end,
-                        title: tempDisney.value.facility.label,
-                        desc: `${tempDisney.value.area}`,
+                        title: tempDisney.value.facility,
+                        desc: `${tempDisney.value.area} - ${tempDisney.value.type}`,
+                        note: tempDisney.value.note,
                         showMap: false
                     });
-                    tempDisney.value = { start: '', end: '', area: '', facility: null };
+                    tempDisney.value = { start: '', end: '', area: '', type: '', facility: '', note: '' };
                 };
 
-                // Custom Events
                 const openEventModal = () => {
-                    newEvent.value = { startTime: '', endTime: '', title: '', desc: '', address: '', mapLink: '' };
+                    newEvent.value = { startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' };
                     showModal.value = true;
                 };
 
@@ -564,25 +515,11 @@
                     if(confirm('刪除此行程?')) currentDay.value.events.splice(index, 1);
                 };
 
-                // Map Helpers
-                const getEmbedUrl = (url) => {
-                    // Try to convert standard google maps url to embed url for iframe
-                    // NOTE: This is a hack. Official embeds need API key. 
-                    // This uses the old output=embed parameter which works for query searches usually.
-                    return `https://maps.google.com/maps?q=${encodeURIComponent(url)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
-                };
+                const getEmbedUrl = (url) => `https://maps.google.com/maps?q=${encodeURIComponent(url)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+                const toggleMap = (idx) => sortedEvents.value[idx].showMap = !sortedEvents.value[idx].showMap;
 
-                const toggleMap = (idx) => {
-                    // Sort order might change index, so we find by object reference ideally, 
-                    // but here we just rely on the sorted list rendering
-                    // Actually safer to modify the object directly in the sorted array since it references original
-                    sortedEvents.value[idx].showMap = !sortedEvents.value[idx].showMap;
-                };
-
-                // Money
                 const addOrUpdateExpense = () => {
                     if (!newExpense.value.amount || !newExpense.value.item) return;
-                    
                     if (isEditingExpense.value) {
                         const idx = expenses.value.findIndex(e => e.id === newExpense.value.id);
                         if(idx !== -1) expenses.value[idx] = { ...newExpense.value };
@@ -595,69 +532,34 @@
 
                 const editExpense = (id) => {
                     const exp = expenses.value.find(e => e.id === id);
-                    if(exp) {
-                        newExpense.value = { ...exp };
-                        isEditingExpense.value = true;
-                    }
+                    if(exp) { newExpense.value = { ...exp }; isEditingExpense.value = true; }
                 };
 
-                const deleteExpense = (id) => {
-                    if(confirm('刪除此紀錄?')) expenses.value = expenses.value.filter(e => e.id !== id);
-                };
+                const deleteExpense = (id) => { if(confirm('刪除?')) expenses.value = expenses.value.filter(e => e.id !== id); };
+                const cancelEditExpense = () => { isEditingExpense.value = false; newExpense.value = { id: null, amount: '', method: 'cash', item: '' }; };
                 
-                const cancelEditExpense = () => {
-                    isEditingExpense.value = false;
-                    newExpense.value = { id: null, amount: '', method: 'cash', item: '' };
-                };
-
-                // Shopping
-                const addShoppingItem = () => {
-                    if(newShoppingItem.value) {
-                        shoppingList.value.push({ name: newShoppingItem.value, bought: false });
-                        newShoppingItem.value = '';
-                    }
-                };
-
-                // Saved Locations
-                const addLocation = () => {
-                    if(newLocation.value.name && newLocation.value.url) {
-                        savedLocations.value.push({ ...newLocation.value, showEmbed: false });
-                        newLocation.value = { name: '', url: '' };
-                    }
-                };
+                const addShoppingItem = () => { if(newShoppingItem.value) { shoppingList.value.push({ name: newShoppingItem.value, bought: false }); newShoppingItem.value = ''; }};
+                const addLocation = () => { if(newLocation.value.name && newLocation.value.url) { savedLocations.value.push({ ...newLocation.value, showEmbed: false }); newLocation.value = { name: '', url: '' }; }};
                 const deleteLocation = (i) => savedLocations.value.splice(i, 1);
                 const openMap = (url) => window.open(url, '_blank');
 
-                // --- Persistence (LocalStorage) ---
                 onMounted(() => {
-                    // Load Theme
                     document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light');
-                    
-                    // Load Data
-                    const savedTrip = localStorage.getItem('trip2026_days');
-                    if(savedTrip) tripDays.value = JSON.parse(savedTrip);
-
-                    const savedExp = localStorage.getItem('trip2026_expenses');
-                    if(savedExp) expenses.value = JSON.parse(savedExp);
-
-                    const savedShop = localStorage.getItem('trip2026_shop');
-                    if(savedShop) shoppingList.value = JSON.parse(savedShop);
-
-                    const savedLocs = localStorage.getItem('trip2026_locs');
-                    if(savedLocs) savedLocations.value = JSON.parse(savedLocs);
+                    if(localStorage.getItem('trip2026_days')) tripDays.value = JSON.parse(localStorage.getItem('trip2026_days'));
+                    if(localStorage.getItem('trip2026_expenses')) expenses.value = JSON.parse(localStorage.getItem('trip2026_expenses'));
+                    if(localStorage.getItem('trip2026_shop')) shoppingList.value = JSON.parse(localStorage.getItem('trip2026_shop'));
+                    if(localStorage.getItem('trip2026_locs')) savedLocations.value = JSON.parse(localStorage.getItem('trip2026_locs'));
                 });
 
-                // Watchers to auto-save
-                watch(tripDays, (newVal) => localStorage.setItem('trip2026_days', JSON.stringify(newVal)), { deep: true });
-                watch(expenses, (newVal) => localStorage.setItem('trip2026_expenses', JSON.stringify(newVal)), { deep: true });
-                watch(shoppingList, (newVal) => localStorage.setItem('trip2026_shop', JSON.stringify(newVal)), { deep: true });
-                watch(savedLocations, (newVal) => localStorage.setItem('trip2026_locs', JSON.stringify(newVal)), { deep: true });
-                watch(isDarkMode, (newVal) => localStorage.setItem('trip2026_theme', newVal));
+                watch(tripDays, (v) => localStorage.setItem('trip2026_days', JSON.stringify(v)), { deep: true });
+                watch(expenses, (v) => localStorage.setItem('trip2026_expenses', JSON.stringify(v)), { deep: true });
+                watch(shoppingList, (v) => localStorage.setItem('trip2026_shop', JSON.stringify(v)), { deep: true });
+                watch(savedLocations, (v) => localStorage.setItem('trip2026_locs', JSON.stringify(v)), { deep: true });
+                watch(isDarkMode, (v) => localStorage.setItem('trip2026_theme', v));
 
                 return {
-                    isDarkMode, toggleTheme,
-                    currentTab, tabs, selectedDayIndex, tripDays, currentDay,
-                    disneyData, currentParkAreas, tempDisney, getFacilitiesByArea, addDisneyEvent,
+                    isDarkMode, toggleTheme, currentTab, tabs, selectedDayIndex, tripDays, currentDay,
+                    currentParkAreas, currentFacilityList, tempDisney, addDisneyEvent,
                     sortedEvents, showModal, newEvent, openEventModal, saveCustomEvent, deleteEvent,
                     expenses, newExpense, addOrUpdateExpense, editExpense, deleteExpense, isEditingExpense, cancelEditExpense,
                     shoppingList, newShoppingItem, addShoppingItem,
