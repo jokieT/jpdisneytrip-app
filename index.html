@@ -10,14 +10,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
-        /* CSS Variables for Theme Switching */
+        /* CSS Variables */
         :root {
             --bg-color: #f0f2f5;
             --text-color: #4a5568;
             --card-bg: #e0e5ec;
             --shadow-light: #ffffff;
             --shadow-dark: #a3b1c6;
-            --accent: #6b7c93;
             --input-bg: #e0e5ec;
         }
 
@@ -27,7 +26,6 @@
             --card-bg: #292d32;
             --shadow-light: #32373d;
             --shadow-dark: #202327;
-            --accent: #a0a5a9;
             --input-bg: #292d32;
         }
 
@@ -145,71 +143,62 @@
                     </div>
                 </div>
 
-                <!-- Weather -->
-                <div class="neu-flat p-4 flex items-center justify-between">
-                    <div>
-                        <div class="text-xs opacity-50">預測天氣 (點擊修改)</div>
-                        <input v-model="currentDay.weather.temp" class="bg-transparent text-xl font-light w-16 focus:outline-none text-[var(--text-color)]">
-                        <div class="text-xs opacity-70">{{ currentDay.location }}</div>
-                    </div>
-                    <select v-model="currentDay.weather.icon" class="bg-transparent text-3xl focus:outline-none text-right appearance-none">
-                        <option>☀️</option><option>☁️</option><option>🌧️</option><option>☃️</option>
-                    </select>
-                </div>
-
-                <!-- Flight Card -->
-                <div v-if="currentDay.flight" class="neu-flat p-5 relative overflow-hidden">
-                    <div class="text-xs font-bold text-center mb-4 opacity-50 tracking-widest">FLIGHT INFO</div>
-                    <div class="flex justify-between items-center relative z-10">
-                        <div class="text-center">
-                            <div class="text-2xl font-black">{{ currentDay.flight.from }}</div>
-                            <div class="text-xs opacity-70">{{ currentDay.flight.fromTerminal }}</div>
-                            <input type="time" v-model="currentDay.flight.depTime" class="bg-transparent text-xs mt-1 text-center w-full focus:outline-none text-[var(--text-color)]">
-                        </div>
-                        <i class="fas fa-plane text-xl opacity-50 transform rotate-90 sm:rotate-0"></i>
-                        <div class="text-center">
-                            <div class="text-2xl font-black">{{ currentDay.flight.to }}</div>
-                            <div class="text-xs opacity-70">{{ currentDay.flight.toTerminal }}</div>
-                            <input type="time" v-model="currentDay.flight.arrTime" class="bg-transparent text-xs mt-1 text-center w-full focus:outline-none text-[var(--text-color)]">
-                        </div>
-                    </div>
-                    <div class="flight-line"></div>
-                </div>
-
-                <!-- Disney Planner (Updated with Chinese Areas) -->
+                <!-- Disney Planner (Updated) -->
                 <div v-if="currentDay.parkName" class="neu-flat p-5 space-y-4 border-l-4 border-purple-500">
-                    <h3 class="text-sm font-bold text-purple-500 uppercase flex justify-between">
-                        <span>🎡 {{ currentDay.parkName === 'land' ? 'Disneyland' : 'DisneySea' }} Planner</span>
+                    <h3 class="text-sm font-bold text-purple-500 uppercase flex justify-between items-center">
+                        <span>🎡 Planner</span>
+                        <span class="text-[10px] opacity-50">{{ currentDay.parkName === 'land' ? 'Disneyland' : 'DisneySea' }}</span>
                     </h3>
                     
-                    <!-- Time -->
+                    <!-- Search Box -->
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-3 text-xs opacity-50"></i>
+                        <input type="text" v-model="searchQuery" placeholder="搜尋設施 / 餐廳 / 商店..." class="neu-input w-full pl-8 p-2 text-sm">
+                        
+                        <!-- Search Results Dropdown -->
+                        <div v-if="searchResults.length > 0" class="absolute left-0 right-0 top-10 bg-[var(--card-bg)] shadow-xl z-20 max-h-48 overflow-y-auto rounded-xl border border-gray-500/20">
+                            <div v-for="(res, idx) in searchResults" :key="idx" @click="selectSearchResult(res)" class="p-3 border-b border-gray-500/10 text-xs hover:bg-gray-500/10 cursor-pointer">
+                                <div class="font-bold text-purple-400">{{ res.name }}</div>
+                                <div class="opacity-50">{{ res.park }} > {{ res.area }}</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2">
                         <input type="time" v-model="tempDisney.start" class="neu-input p-2 text-xs text-center">
                         <input type="time" v-model="tempDisney.end" class="neu-input p-2 text-xs text-center">
                     </div>
 
-                    <!-- 1. Area Selection -->
+                    <!-- 1. Area / Hotel Selection -->
                     <select v-model="tempDisney.area" class="neu-input w-full p-3 text-sm">
-                        <option value="" disabled selected>1. 選擇區域 (Area)</option>
+                        <option value="" disabled selected>1. 選擇區域 / 酒店</option>
+                        <option value="HOTEL_DINING">🏨 迪士尼飯店 (Hotel Dining)</option>
+                        <option disabled>──────────</option>
                         <option v-for="area in currentParkAreas" :key="area" :value="area">{{ area }}</option>
                     </select>
 
-                    <!-- 2. Type Selection (Attraction/Food/Shop) -->
-                    <select v-if="tempDisney.area" v-model="tempDisney.type" class="neu-input w-full p-3 text-sm">
-                        <option value="" disabled selected>2. 選擇類別 (Type)</option>
-                        <option value="attractions">🎢 遊樂設施 (Attractions)</option>
-                        <option value="restaurants">🍽️ 餐廳 (Restaurants)</option>
-                        <option value="shops">🛍️ 商店 (Shops)</option>
+                    <!-- 2. Second Level Logic -->
+                    <!-- Case A: Hotel Selected -> Show Hotel List -->
+                    <select v-if="tempDisney.area === 'HOTEL_DINING'" v-model="tempDisney.subArea" class="neu-input w-full p-3 text-sm">
+                        <option value="" disabled selected>2. 選擇酒店 (Select Hotel)</option>
+                        <option v-for="(list, hotelName) in disneyDB.hotels" :key="hotelName" :value="hotelName">{{ hotelName }}</option>
                     </select>
 
-                    <!-- 3. Specific Item Selection -->
-                    <select v-if="tempDisney.type" v-model="tempDisney.facility" class="neu-input w-full p-3 text-sm">
+                    <!-- Case B: Park Area Selected -> Show Type (Attraction/Food/Shop) -->
+                    <select v-else-if="tempDisney.area" v-model="tempDisney.type" class="neu-input w-full p-3 text-sm">
+                        <option value="" disabled selected>2. 選擇類別 (Type)</option>
+                        <option value="attractions">🎢 遊樂設施</option>
+                        <option value="restaurants">🍽️ 餐廳</option>
+                        <option value="shops">🛍️ 商店</option>
+                    </select>
+
+                    <!-- 3. Final Item Selection -->
+                    <select v-if="canSelectFacility" v-model="tempDisney.facility" class="neu-input w-full p-3 text-sm">
                         <option value="" disabled selected>3. 選擇項目</option>
                         <option v-for="item in currentFacilityList" :key="item" :value="item">{{ item }}</option>
                     </select>
                     
-                    <!-- 4. Notes -->
-                    <input v-if="tempDisney.facility" v-model="tempDisney.note" placeholder="備註 (e.g. 抽Pass / 買頭箍)" class="neu-input w-full p-3 text-sm">
+                    <input v-if="tempDisney.facility" v-model="tempDisney.note" placeholder="備註 (e.g. 預約編號)" class="neu-input w-full p-3 text-sm">
 
                     <button @click="addDisneyEvent" :disabled="!tempDisney.facility" class="neu-btn w-full py-3 rounded-xl text-sm font-bold text-purple-500">
                         + 加入行程
@@ -252,7 +241,7 @@
                 </div>
             </section>
 
-            <!-- TAB 2: MONEY -->
+            <!-- TAB 2, 3, 4 (Money, Map, Shopping) - Kept same for brevity -->
             <section v-if="currentTab === 'money'" class="space-y-6">
                  <div class="neu-flat p-6 text-center">
                     <div class="text-xs opacity-50 mb-1">總支出 (TOTAL)</div>
@@ -283,7 +272,6 @@
                 </div>
             </section>
 
-            <!-- TAB 3: MAP -->
             <section v-if="currentTab === 'map'" class="space-y-4">
                  <div class="neu-flat p-4 space-y-3">
                     <h3 class="text-sm font-bold opacity-50">新增地點</h3>
@@ -300,19 +288,17 @@
                 </div>
             </section>
 
-             <!-- TAB 4: SHOPPING -->
              <section v-if="currentTab === 'shopping'" class="space-y-6">
                 <div class="neu-flat p-5 space-y-4"><div class="flex gap-2"><input type="text" v-model="newShoppingItem" class="neu-input flex-1 p-3 text-sm"><button @click="addShoppingItem" class="neu-btn px-4 rounded-xl text-xl">+</button></div></div>
                 <div class="space-y-2"><div v-for="(item, i) in shoppingList" :key="i" class="neu-btn p-4 rounded-xl flex items-center justify-between"><div class="flex items-center gap-3 flex-1" @click="item.bought = !item.bought"><div :class="['w-5 h-5 rounded-full border-2 border-gray-500 flex items-center justify-center', item.bought ? 'bg-gray-500' : '']"><i v-if="item.bought" class="fas fa-check text-[10px] text-white"></i></div><span :class="['text-sm', item.bought ? 'line-through opacity-50' : '']">{{ item.name }}</span></div><button @click="shoppingList.splice(i, 1)" class="opacity-20 text-red-500 p-2">✕</button></div></div>
             </section>
         </main>
 
-        <!-- Navigation Bar -->
+        <!-- Nav & Modal -->
         <nav class="absolute bottom-6 left-6 right-6 h-16 neu-flat flex justify-around items-center px-2 z-50 rounded-2xl">
             <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']"><i :class="tab.icon + ' text-xl'"></i></button>
         </nav>
         
-        <!-- Add Event Modal -->
         <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4">
             <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
                 <h3 class="font-bold text-lg">自訂行程</h3>
@@ -325,27 +311,13 @@
             </div>
         </div>
 
-        <!-- Settings/Sync Modal -->
         <div v-if="showSettings" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center p-4">
             <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
                 <h3 class="font-bold text-lg mb-2">數據同步 (Data Sync)</h3>
-                
-                <div class="space-y-2">
-                    <p class="text-xs opacity-70">1. 點擊「匯出」，複製代碼傳給家人。</p>
-                    <button @click="exportData" class="neu-btn w-full py-2 rounded text-sm text-blue-400">📋 複製匯出代碼 (Copy Export)</button>
-                </div>
-                
+                <div class="space-y-2"><p class="text-xs opacity-70">1. 點擊「匯出」，複製代碼傳給家人。</p><button @click="exportData" class="neu-btn w-full py-2 rounded text-sm text-blue-400">📋 複製匯出代碼</button></div>
                 <hr class="border-gray-500/20">
-
-                <div class="space-y-2">
-                    <p class="text-xs opacity-70">2. 家人在此貼上代碼，點擊「匯入」。</p>
-                    <textarea v-model="importString" placeholder="在此貼上代碼..." class="neu-input w-full h-24 p-2 text-[10px] font-mono"></textarea>
-                    <button @click="importData" class="neu-btn w-full py-2 rounded text-sm text-green-500">📥 確認匯入 (Import)</button>
-                </div>
-
-                <div class="pt-4">
-                    <button @click="showSettings = false" class="neu-btn w-full py-2 rounded-lg text-red-400">關閉</button>
-                </div>
+                <div class="space-y-2"><p class="text-xs opacity-70">2. 家人在此貼上代碼，點擊「匯入」。</p><textarea v-model="importString" placeholder="在此貼上代碼..." class="neu-input w-full h-24 p-2 text-[10px] font-mono"></textarea><button @click="importData" class="neu-btn w-full py-2 rounded text-sm text-green-500">📥 確認匯入</button></div>
+                <div class="pt-4"><button @click="showSettings = false" class="neu-btn w-full py-2 rounded-lg text-red-400">關閉</button></div>
             </div>
         </div>
 
@@ -354,7 +326,7 @@
     <script>
         const { createApp, ref, computed, watch, onMounted } = Vue;
 
-        // Expanded Disney Data Source with Chinese Translations
+        // Expanded Disney Data Source with Hotels and Chinese Translations
         const disneyDB = {
             land: {
                 "World Bazaar (世界市集)": {
@@ -401,12 +373,12 @@
                 },
                 "Mediterranean Harbor (地中海港灣)": {
                     attractions: ["Soaring: Fantastic Flight (翱翔：夢幻奇航)", "DisneySea Transit Steamer Line (迪士尼海洋渡輪)", "Fortress Explorations (要塞探險)", "Venetian Gondolas (威尼斯貢多拉遊船)"],
-                    restaurants: ["Magellan's (麥哲倫)", "Ristorante di Canaletto (卡納雷托餐廳)", "Zambini Brothers' Ristorante (尚比尼兄弟餐廳)", "Cafe Portofino (波多菲諾咖啡)"],
+                    restaurants: ["Magellan's (麥哲倫)", "Ristorante di Canaletto (卡納雷托餐廳)", "Zambini Brothers' Ristorante (尚比尼兄弟餐廳)", "Cafe Portofino (波多菲諾咖啡)", "Oceano (海洋宮 - MiraCosta)"], 
                     shops: ["Emporio (恩波利歐)", "Il Postino Stationery (郵局文具店)"]
                 },
                 "American Waterfront (美國海濱)": {
                     attractions: ["Tower of Terror (驚魂古塔)", "Toy Story Mania! (玩具總動員瘋狂遊戲屋)", "Turtle Talk (龜龜漫談)", "Big City Vehicles (大都會交通工具)"],
-                    restaurants: ["S.S. Columbia Dining Room (S.S.哥倫比亞餐廳)", "Teddy Roosevelt Lounge (泰迪羅斯福歡腾)", "New York Deli (紐約美味房)", "Cape Cod Cook-Off (鱈魚岬錦標美食)"],
+                    restaurants: ["S.S. Columbia Dining Room (S.S.哥倫比亞餐廳)", "Teddy Roosevelt Lounge (泰迪羅斯福歡腾)", "New York Deli (紐約美味房)", "Cape Cod Cook-Off (鱈魚岬錦標美食)", "Restaurant Sakura (櫻花餐廳)"],
                     shops: ["McDuck's Department Store (史高治百貨公司)", "Steamboat Mickey's (蒸氣船米奇)"]
                 },
                 "Port Discovery (發現港)": {
@@ -434,6 +406,31 @@
                     restaurants: ["Vulcania Restaurant (火山餐廳)", "Nautilus Galley (鸚鵡螺號大食堂)"],
                     shops: ["Nautilus Gifts (鸚鵡螺號禮品)"]
                 }
+            },
+            hotels: {
+                "Tokyo Disneyland Hotel (樂園酒店)": [
+                    "Sherwood Garden Restaurant (雪伍德花園餐廳 - Buffet)",
+                    "CANNA (坎納 - Creative Cuisine)",
+                    "Dreamers Lounge (夢想家酒廊)"
+                ],
+                "Hotel MiraCosta (海洋觀海景酒店)": [
+                    "Oceano (海洋宮 - Buffet/Course)",
+                    "Silk Road Garden (絲路園 - Chinese)",
+                    "BellaVista Lounge (貝拉 vista 酒廊)"
+                ],
+                "Disney Ambassador Hotel (大使大飯店)": [
+                    "Chef Mickey (米奇大廚 - Buffet/Character Dining)",
+                    "Empire Grill (帝國餐廳 - California Cuisine)",
+                    "Tick Tock Diner (滴答餐車 - Bakery)",
+                    "Hyperion Lounge (海波里恩酒廊)"
+                ],
+                "Toy Story Hotel (玩具總動員飯店)": [
+                    "Lotso Garden Cafe (熊抱哥花園咖啡 - Buffet)"
+                ],
+                "Celebration Hotel (樂祥飯店)": [
+                    "Wish Cafe (心願咖啡)",
+                    "Discover Cafe (探索咖啡)"
+                ]
             }
         };
 
@@ -447,6 +444,9 @@
                 const showModal = ref(false);
                 const showSettings = ref(false);
                 const importString = ref('');
+                
+                // --- Search State ---
+                const searchQuery = ref('');
                 
                 // --- Data Structure ---
                 const tripDays = ref([
@@ -478,7 +478,7 @@
                       events: [] },
                 ]);
 
-                const tempDisney = ref({ start: '', end: '', area: '', type: '', facility: '', note: '' });
+                const tempDisney = ref({ start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' });
                 const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' });
                 const expenses = ref([]);
                 const newExpense = ref({ id: null, amount: '', method: 'cash', item: '' });
@@ -503,7 +503,15 @@
                     return Object.keys(disneyDB[currentDay.value.parkName]);
                 });
 
+                const canSelectFacility = computed(() => {
+                    if (tempDisney.value.area === 'HOTEL_DINING') return !!tempDisney.value.subArea;
+                    return !!(tempDisney.value.area && tempDisney.value.type);
+                });
+
                 const currentFacilityList = computed(() => {
+                    if (tempDisney.value.area === 'HOTEL_DINING') {
+                        return disneyDB.hotels[tempDisney.value.subArea] || [];
+                    }
                     if (!tempDisney.value.area || !tempDisney.value.type) return [];
                     return disneyDB[currentDay.value.parkName][tempDisney.value.area][tempDisney.value.type] || [];
                 });
@@ -513,6 +521,40 @@
                 });
 
                 const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + Number(item.amount), 0));
+                
+                // --- Search Logic ---
+                const searchResults = computed(() => {
+                    if (!searchQuery.value || searchQuery.value.length < 2) return [];
+                    const q = searchQuery.value.toLowerCase();
+                    let results = [];
+                    
+                    // Helper to search park DB
+                    const searchPark = (parkKey, parkName) => {
+                         Object.entries(disneyDB[parkKey]).forEach(([area, types]) => {
+                            Object.entries(types).forEach(([type, items]) => {
+                                items.forEach(item => {
+                                    if(item.toLowerCase().includes(q)) {
+                                        results.push({ name: item, park: parkName, area: area, type: type, raw: {park:parkKey, area, type, item} });
+                                    }
+                                });
+                            });
+                        });
+                    };
+
+                    // Search Hotels
+                    Object.entries(disneyDB.hotels).forEach(([hotel, restaurants]) => {
+                        restaurants.forEach(r => {
+                            if(r.toLowerCase().includes(q)) {
+                                results.push({ name: r, park: 'HOTEL', area: hotel, type: 'Dining', raw: {area:'HOTEL_DINING', subArea:hotel, item:r} });
+                            }
+                        });
+                    });
+
+                    searchPark('land', 'Disneyland');
+                    searchPark('sea', 'DisneySea');
+
+                    return results;
+                });
 
                 // --- Methods ---
                 const toggleTheme = () => {
@@ -520,103 +562,59 @@
                     document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light');
                 };
 
+                const selectSearchResult = (res) => {
+                    tempDisney.value.area = res.raw.area;
+                    if(res.raw.area === 'HOTEL_DINING') {
+                        tempDisney.value.subArea = res.raw.subArea;
+                    } else {
+                        // If searching result is from other park, warn or switch? 
+                        // For simplicity, we assume user searches for current park or generic hotel
+                        if(res.park !== 'HOTEL' && res.raw.park !== currentDay.value.parkName) {
+                            alert(`此設施位於 ${res.park}，請先切換到該日行程。`);
+                            return;
+                        }
+                        tempDisney.value.type = res.raw.type;
+                    }
+                    tempDisney.value.facility = res.raw.item;
+                    searchQuery.value = ''; // clear search
+                };
+
                 const addDisneyEvent = () => {
                     if (!tempDisney.value.facility) return;
+                    let descText = '';
+                    if(tempDisney.value.area === 'HOTEL_DINING') {
+                        descText = `🏨 ${tempDisney.value.subArea}`;
+                    } else {
+                        descText = `${tempDisney.value.area} - ${tempDisney.value.type}`;
+                    }
+
                     currentDay.value.events.push({
                         startTime: tempDisney.value.start,
                         endTime: tempDisney.value.end,
                         title: tempDisney.value.facility,
-                        desc: `${tempDisney.value.area} - ${tempDisney.value.type}`,
+                        desc: descText,
                         note: tempDisney.value.note,
                         showMap: false
                     });
-                    tempDisney.value = { start: '', end: '', area: '', type: '', facility: '', note: '' };
+                    tempDisney.value = { start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' };
                 };
 
-                const openEventModal = () => {
-                    newEvent.value = { startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' };
-                    showModal.value = true;
-                };
-
-                const saveCustomEvent = () => {
-                    if(!newEvent.value.title) return;
-                    currentDay.value.events.push({ ...newEvent.value, showMap: false });
-                    showModal.value = false;
-                };
-
-                const deleteEvent = (index) => {
-                    if(confirm('刪除此行程?')) currentDay.value.events.splice(index, 1);
-                };
-
+                // (Other methods same as previous: openEventModal, saveCustomEvent, etc.)
+                const openEventModal = () => { newEvent.value = { startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' }; showModal.value = true; };
+                const saveCustomEvent = () => { if(!newEvent.value.title) return; currentDay.value.events.push({ ...newEvent.value, showMap: false }); showModal.value = false; };
+                const deleteEvent = (index) => { if(confirm('刪除?')) currentDay.value.events.splice(index, 1); };
                 const getEmbedUrl = (url) => `https://maps.google.com/maps?q=${encodeURIComponent(url)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
                 const toggleMap = (idx) => sortedEvents.value[idx].showMap = !sortedEvents.value[idx].showMap;
-
-                const addOrUpdateExpense = () => {
-                    if (!newExpense.value.amount || !newExpense.value.item) return;
-                    if (isEditingExpense.value) {
-                        const idx = expenses.value.findIndex(e => e.id === newExpense.value.id);
-                        if(idx !== -1) expenses.value[idx] = { ...newExpense.value };
-                        isEditingExpense.value = false;
-                    } else {
-                        expenses.value.unshift({ ...newExpense.value, id: Date.now() });
-                    }
-                    newExpense.value = { id: null, amount: '', method: 'cash', item: '' };
-                };
-
-                const editExpense = (id) => {
-                    const exp = expenses.value.find(e => e.id === id);
-                    if(exp) { newExpense.value = { ...exp }; isEditingExpense.value = true; }
-                };
-
+                const addOrUpdateExpense = () => { if (!newExpense.value.amount || !newExpense.value.item) return; if (isEditingExpense.value) { const idx = expenses.value.findIndex(e => e.id === newExpense.value.id); if(idx !== -1) expenses.value[idx] = { ...newExpense.value }; isEditingExpense.value = false; } else { expenses.value.unshift({ ...newExpense.value, id: Date.now() }); } newExpense.value = { id: null, amount: '', method: 'cash', item: '' }; };
+                const editExpense = (id) => { const exp = expenses.value.find(e => e.id === id); if(exp) { newExpense.value = { ...exp }; isEditingExpense.value = true; } };
                 const deleteExpense = (id) => { if(confirm('刪除?')) expenses.value = expenses.value.filter(e => e.id !== id); };
                 const cancelEditExpense = () => { isEditingExpense.value = false; newExpense.value = { id: null, amount: '', method: 'cash', item: '' }; };
-                
                 const addShoppingItem = () => { if(newShoppingItem.value) { shoppingList.value.push({ name: newShoppingItem.value, bought: false }); newShoppingItem.value = ''; }};
                 const addLocation = () => { if(newLocation.value.name && newLocation.value.url) { savedLocations.value.push({ ...newLocation.value, showEmbed: false }); newLocation.value = { name: '', url: '' }; }};
                 const deleteLocation = (i) => savedLocations.value.splice(i, 1);
                 const openMap = (url) => window.open(url, '_blank');
-
-                // --- Sync Features ---
-                const exportData = () => {
-                    const allData = {
-                        days: tripDays.value,
-                        expenses: expenses.value,
-                        shop: shoppingList.value,
-                        locs: savedLocations.value
-                    };
-                    const jsonString = JSON.stringify(allData);
-                    // Simple hash to make it look like a token, base64
-                    const encoded = btoa(unescape(encodeURIComponent(jsonString)));
-                    
-                    navigator.clipboard.writeText(encoded).then(() => {
-                        alert('代碼已複製！請傳送給家人。');
-                    }).catch(err => {
-                        console.error(err);
-                        alert('複製失敗，請手動複製');
-                    });
-                };
-
-                const importData = () => {
-                    if(!importString.value) return;
-                    try {
-                        const decoded = decodeURIComponent(escape(atob(importString.value)));
-                        const data = JSON.parse(decoded);
-                        
-                        if(confirm('警告：這將覆蓋您目前所有的資料，確定嗎？')) {
-                            if(data.days) tripDays.value = data.days;
-                            if(data.expenses) expenses.value = data.expenses;
-                            if(data.shop) shoppingList.value = data.shop;
-                            if(data.locs) savedLocations.value = data.locs;
-                            
-                            alert('資料匯入成功！');
-                            showSettings.value = false;
-                            importString.value = '';
-                        }
-                    } catch (e) {
-                        alert('代碼格式錯誤，請檢查是否複製完整。');
-                        console.error(e);
-                    }
-                };
+                const exportData = () => { const allData = { days: tripDays.value, expenses: expenses.value, shop: shoppingList.value, locs: savedLocations.value }; navigator.clipboard.writeText(btoa(unescape(encodeURIComponent(JSON.stringify(allData))))).then(() => alert('已複製')).catch(()=>alert('複製失敗')); };
+                const importData = () => { if(!importString.value) return; try { const data = JSON.parse(decodeURIComponent(escape(atob(importString.value)))); if(confirm('覆蓋資料?')) { if(data.days) tripDays.value = data.days; if(data.expenses) expenses.value = data.expenses; if(data.shop) shoppingList.value = data.shop; if(data.locs) savedLocations.value = data.locs; alert('成功'); showSettings.value = false; } } catch(e) { alert('錯誤'); } };
 
                 onMounted(() => {
                     document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light');
@@ -634,13 +632,14 @@
 
                 return {
                     isDarkMode, toggleTheme, currentTab, tabs, selectedDayIndex, tripDays, currentDay,
-                    currentParkAreas, currentFacilityList, tempDisney, addDisneyEvent,
+                    currentParkAreas, currentFacilityList, tempDisney, addDisneyEvent, canSelectFacility,
                     sortedEvents, showModal, newEvent, openEventModal, saveCustomEvent, deleteEvent,
                     expenses, newExpense, addOrUpdateExpense, editExpense, deleteExpense, isEditingExpense, cancelEditExpense,
                     shoppingList, newShoppingItem, addShoppingItem,
                     savedLocations, newLocation, addLocation, deleteLocation, openMap,
                     exchangeRate, totalSpending, toggleMap, getEmbedUrl,
-                    showSettings, importString, exportData, importData
+                    showSettings, importString, exportData, importData,
+                    searchQuery, searchResults, selectSearchResult, disneyDB
                 };
             }
         }).mount('#app');
