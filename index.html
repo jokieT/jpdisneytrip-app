@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>日本 2026 行程 App</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue.js 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
@@ -23,7 +27,6 @@
         .flight-line { border-top: 2px dashed var(--text-color); opacity: 0.3; position: absolute; top: 50%; left: 20%; right: 20%; z-index: 0; }
         .modal-overlay { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
         select { -webkit-appearance: none; appearance: none; }
-        /* Style for editable inputs to look like text */
         .editable-text { background: transparent; border: none; outline: none; color: inherit; width: 100%; text-align: inherit; padding: 0; margin: 0; }
         .editable-text:focus { border-bottom: 1px dashed var(--text-color); }
     </style>
@@ -45,7 +48,7 @@
 
         <main class="flex-1 overflow-y-auto p-5 pb-28 space-y-6">
 
-            <!-- SCHEDULE TAB -->
+            <!-- TAB 1: SCHEDULE -->
             <section v-if="currentTab === 'schedule'" class="space-y-6">
                 <!-- Date Selector -->
                 <div class="flex overflow-x-auto space-x-4 pb-4 px-1 hide-scrollbar">
@@ -55,25 +58,20 @@
                     </div>
                 </div>
 
-                <!-- Safe Render -->
                 <div v-if="currentDay">
-                    
-                    <!-- Weather & Flight Card (NOW EDITABLE) -->
+                    <!-- Weather & Flight Card -->
                     <div class="neu-flat p-6 relative overflow-hidden mb-6">
                         <div class="absolute -right-6 -top-6 text-9xl opacity-10 rotate-12 pointer-events-none">{{ currentDay.weather?.icon || '🌤️' }}</div>
                         <div class="relative z-10 flex justify-between items-start">
                             <div class="w-full">
-                                <!-- Editable Location -->
                                 <input v-model="currentDay.location" class="editable-text text-2xl font-bold mb-1" placeholder="地點">
-                                <!-- Editable Weather -->
                                 <div class="flex items-center gap-2 text-sm opacity-60">
                                     <input v-model="currentDay.weather.temp" class="editable-text w-12" placeholder="Temp">
                                     <input v-model="currentDay.weather.icon" class="editable-text w-8" placeholder="Icon">
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Flight Info (NOW EDITABLE) -->
+                        <!-- Flight Info -->
                         <div v-if="currentDay.flight" class="mt-6 pt-4 border-t border-gray-500/20 relative">
                             <div class="flight-line"></div>
                             <div class="flex justify-between items-center relative z-10">
@@ -107,7 +105,7 @@
                             <span>🎡 Planner</span>
                             <span class="text-[10px] opacity-50">{{ currentDay.parkName === 'land' ? 'Disneyland' : 'DisneySea' }}</span>
                         </h3>
-                        
+                        <!-- Search Box -->
                         <div class="relative">
                             <i class="fas fa-search absolute left-3 top-3 text-xs opacity-50"></i>
                             <input type="text" v-model="searchQuery" placeholder="搜尋設施 / 餐廳 / 商店..." class="neu-input w-full pl-8 p-2 text-sm">
@@ -165,7 +163,7 @@
                 </div>
             </section>
 
-            <!-- OTHER TABS -->
+            <!-- TAB 2, 3, 4 (Money, Map, Shopping) -->
             <section v-if="currentTab === 'money'" class="space-y-6">
                 <div class="neu-flat p-6 text-center"><div class="text-xs opacity-50 mb-1">總支出 (TOTAL)</div><div class="text-3xl font-light">¥ {{ totalSpending.toLocaleString() }}</div><div class="text-sm opacity-50 mt-1">≈ HK$ {{ (totalSpending * exchangeRate).toFixed(1) }}</div></div>
                 <div class="neu-flat p-5 space-y-4">
@@ -190,12 +188,14 @@
             <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']"><i :class="tab.icon + ' text-xl'"></i></button>
         </nav>
         
+        <!-- Modals -->
         <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4"><div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]"><h3 class="font-bold text-lg">自訂行程</h3><div class="flex gap-2"><input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1"><input type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1"></div><input v-model="newEvent.title" placeholder="標題" class="neu-input w-full p-2"><textarea v-model="newEvent.desc" placeholder="詳情" class="neu-input w-full p-2 h-20"></textarea><input v-model="newEvent.note" placeholder="備註" class="neu-input w-full p-2 text-xs"><input v-model="newEvent.mapLink" placeholder="Maps Link" class="neu-input w-full p-2 text-xs"><div class="flex gap-3 pt-2"><button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">儲存</button><button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button></div></div></div>
         <div v-if="showSettings" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center p-4"><div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]"><h3 class="font-bold text-lg mb-2">數據同步</h3><div class="space-y-2"><p class="text-xs opacity-70">1. 複製代碼</p><button @click="exportData" class="neu-btn w-full py-2 rounded text-sm text-blue-400">📋 複製</button></div><hr class="border-gray-500/20"><div class="space-y-2"><p class="text-xs opacity-70">2. 貼上代碼</p><textarea v-model="importString" placeholder="貼上..." class="neu-input w-full h-24 p-2 text-[10px] font-mono"></textarea><button @click="importData" class="neu-btn w-full py-2 rounded text-sm text-green-500">📥 匯入</button></div><div class="pt-4"><button @click="showSettings = false" class="neu-btn w-full py-2 rounded-lg text-red-400">關閉</button></div></div></div>
     </div>
-
-    <script>
+   <script>
         const { createApp, ref, computed, watch, onMounted } = Vue;
+        
+        // 迪士尼與酒店詳細數據
         const disneyDB = { land: { "World Bazaar (世界市集)": { attractions: ["Omnibus (雙層巴士)", "Penny Arcade (便士拱廊)"], restaurants: ["Eastside Cafe (東街咖啡餐館)", "Center Street Coffeehouse (中央大道咖啡餐館)", "Great American Waffle Co. (最佳美國鬆餅公司)", "Restaurant Hokusai (北齋餐廳)", "Sweetheart Cafe (甜心咖啡餐館)"], shops: ["Grand Emporium (格蘭恩波商場)", "World Bazaar Confectionery (世界市集點心坊)", "House of Greetings (致賀屋)"] }, "Adventureland (探險樂園)": { attractions: ["Pirates of the Caribbean (加勒比海盜)", "Jungle Cruise (叢林巡航)", "Western River Railroad (西部沿河鐵路)", "The Enchanted Tiki Room (提基神殿)"], restaurants: ["Blue Bayou Restaurant (藍海灣餐廳)", "Crystal Palace Restaurant (水晶宮餐廳)", "Polynesian Terrace (波利尼西亞草壇餐廳)", "China Voyager (中華餐廳)", "Cafe Orleans (奧爾良咖啡)"], shops: ["Adventureland Bazaar (探險樂園市集)", "Le Marche Bleu (藍色市集)", "Cristal Arts (水晶藝術)"] }, "Westernland (西部樂園)": { attractions: ["Big Thunder Mountain (巨雷山)", "Country Bear Theater (鄉村頑熊劇場)", "Mark Twain Riverboat (馬克吐溫號)", "Tom Sawyer Island (湯姆索亞島)"], restaurants: ["Hungry Bear Restaurant (頑熊餐廳)", "Plaza Pavilion Restaurant (廣場樓閣餐廳)", "Pecos Bill Cafe (佩斯比爾小館)", "Camp Woodchuck Kitchen (土撥鼠營地廚房)"], shops: ["Western Wear (西部服裝)", "General Store (雜貨店)"] }, "Critter Country (動物天地)": { attractions: ["Splash Mountain (飛濺山)", "Beaver Brothers Explorer Canoes (海貍兄弟獨木舟)"], restaurants: ["Grandma Sara's Kitchen (莎拉阿奶奶的廚房)", "Rackety's Raccoon Saloon (拉吉蒂浣熊小站)"], shops: ["Hoot & Holler Hideout (呼嗒·赫勒窩)"] }, "Fantasyland (夢幻樂園)": { attractions: ["Enchanted Tale of Beauty and the Beast (美女與野獸)", "Pooh's Hunny Hunt (小熊維尼獵蜜記)", "Haunted Mansion (幽靈公館)", "It's a Small World (小小世界)", "Peter Pan's Flight (彼得潘)", "Pinocchio's Daring Journey (小木偶奇遇記)", "Snow White's Adventures (白雪公主冒險旅程)", "Dumbo (小飛象)", "Cinderella's Fairy Tale Hall (仙履奇緣童話大廳)"], restaurants: ["Queen of Hearts Banquet Hall (紅心女王宴會大廳)", "La Taverne de Gaston (加斯頓酒館)", "Captain Hook's Galley (虎克船長的廚房)", "Village Pastry (鄉村糕點)"], shops: ["Village Shoppes (鄉村商店)", "Kingdom Treasures (王國寶藏)", "Pooh Corner (小熊維尼專櫃)"] }, "Toontown (卡通城)": { attractions: ["Roger Rabbit's Car Toon Spin (羅傑兔子轉轉車)", "Minnie's Style Studio (米妮時尚工作室)", "Gadget's Go Coaster (艾芝迷你雲霄飛車)"], restaurants: ["Huey, Dewey and Louie's Good Time Cafe (輝兒杜兒路兒好時光咖啡)", "Toontone Treats (卡通漆彩點心)"], shops: ["Gag Factory (滑稽工廠)"] }, "Tomorrowland (明日樂園)": { attractions: ["Space Mountain (太空山)", "Star Tours (星際旅行)", "Monsters, Inc. Ride & Go Seek! (怪獸電力公司)", "Baymax Happy Ride (杯麵歡樂搭)", "Buzz Lightyear's Astro Blasters (巴斯光年星際歷險)"], restaurants: ["Pan Galactic Pizza Port (汎銀河披薩港)", "Plazma Ray's Diner (瑞斯瑪射線快餐)", "The Big Pop (霹靂啪啦爆米花)"], shops: ["Planet M (行星M)", "Cosmic Encounter (宇宙相遇)"] } }, sea: { "Fantasy Springs (夢幻泉鄉)": { attractions: ["Anna and Elsa's Frozen Journey (安娜與艾莎的冰雪之旅)", "Rapunzel's Lantern Festival (樂佩公主天燈盛會)", "Peter Pan's Never Land Adventure (彼得潘夢幻島歷險記)", "Fairy Tinker Bell's Busy Buggies (奇妙仙子妙妙車)"], restaurants: ["Royal Banquet of Arendelle (艾倫戴爾皇家宴會廳)", "The Snuggly Duckling (醜小鴨小館)", "Lookout Cookout (瞭望臺野餐屋)"], shops: ["Fantasy Springs Gifts (夢幻泉鄉禮品)"] }, "Mediterranean Harbor (地中海港灣)": { attractions: ["Soaring: Fantastic Flight (翱翔：夢幻奇航)", "DisneySea Transit Steamer Line (迪士尼海洋渡輪)", "Fortress Explorations (要塞探險)", "Venetian Gondolas (威尼斯貢多拉遊船)"], restaurants: ["Magellan's (麥哲倫)", "Ristorante di Canaletto (卡納雷托餐廳)", "Zambini Brothers' Ristorante (尚比尼兄弟餐廳)", "Cafe Portofino (波多菲諾咖啡)", "Oceano (海洋宮 - MiraCosta)"], shops: ["Emporio (恩波利歐)", "Il Postino Stationery (郵局文具店)"] }, "American Waterfront (美國海濱)": { attractions: ["Tower of Terror (驚魂古塔)", "Toy Story Mania! (玩具總動員瘋狂遊戲屋)", "Turtle Talk (龜龜漫談)", "Big City Vehicles (大都會交通工具)"], restaurants: ["S.S. Columbia Dining Room (S.S.哥倫比亞餐廳)", "Teddy Roosevelt Lounge (泰迪羅斯福歡腾)", "New York Deli (紐約美味房)", "Cape Cod Cook-Off (鱈魚岬錦標美食)", "Restaurant Sakura (櫻花餐廳)"], shops: ["McDuck's Department Store (史高治百貨公司)", "Steamboat Mickey's (蒸氣船米奇)"] }, "Port Discovery (發現港)": { attractions: ["Nemo & Friends SeaRider (尼莫&好友的海洋世界)", "Aquatopia (水上逗趣船)"], restaurants: ["Horizon Bay Restaurant (水平線海灣餐廳)", "Seaside Snacks (海邊小吃)"], shops: ["Discovery Gifts (發現禮品)"] }, "Lost River Delta (失落河三角洲)": { attractions: ["Indiana Jones Adventure (印第安納瓊斯冒險旅程)", "Raging Spirits (忿怒雙神)"], restaurants: ["Yucatan Base Camp Grill (猶加敦基地營燒烤)", "Miguel's El Dorado Cantina (米格勒黃金國快餐店)"], shops: ["Lost River Outfitters (失落河探險用品)"] }, "Arabian Coast (阿拉伯海岸)": { attractions: ["Sinbad's Storybook Voyage (辛巴達傳奇之旅)", "The Magic Lamp Theater (神燈劇場)", "Jasmine's Flying Carpets (茉莉公主的飛天魔毯)", "Caravan Carousel (沙漠商隊旋轉木馬)"], restaurants: ["Casbah Food Court (卡斯巴美食廣場)", "Sultan's Oasis (蘇丹綠洲)"], shops: ["Agrabah Marketplace (阿格拉巴市場)"] }, "Mermaid Lagoon (美人魚礁湖)": { attractions: ["Mermaid Lagoon Theater (美人魚礁湖劇場)", "Flounder's Flying Fish Coaster (小胖的飛魚雲霄飛車)", "Scuttle's Scooters (史卡托的寄居蟹)", "Jumpin' Jellyfish (跳躍水母)", "Blowfish Balloon Race (河豚氣球競賽)", "The Whirlpool (旋轉海藻杯)"], restaurants: ["Sebastian's Calypso Kitchen (賽巴斯丁加力骚廚房)"], shops: ["Sleepy Whale Shoppe (睡鯨商店)", "Kiss de Girl Fashions (吻之女孩服飾)"] }, "Mysterious Island (神秘島)": { attractions: ["Journey to the Center of the Earth (地心探險之旅)", "20,000 Leagues Under the Sea (海底兩萬哩)"], restaurants: ["Vulcania Restaurant (火山餐廳)", "Nautilus Galley (鸚鵡螺號大食堂)"], shops: ["Nautilus Gifts (鸚鵡螺號禮品)"] } }, hotels: { "Fantasy Springs Hotel (夢幻泉鄉酒店)": ["Fantasy Springs Restaurant (夢幻泉鄉餐廳 - Buffet)", "Grand Paradis Lounge (格蘭樂園酒廊)", "La Libellule (拉利貝魯 - Grand Chateau Only)"], "Tokyo Disneyland Hotel (樂園酒店)": ["Sherwood Garden Restaurant (雪伍德花園餐廳 - Buffet)", "CANNA (坎納 - Creative Cuisine)", "Dreamers Lounge (夢想家酒廊)"], "Hotel MiraCosta (海洋觀海景酒店)": ["Oceano (海洋宮 - Buffet/Course)", "Silk Road Garden (絲路園 - Chinese)", "BellaVista Lounge (貝拉 vista 酒廊)"], "Disney Ambassador Hotel (大使大飯店)": ["Chef Mickey (米奇大廚 - Buffet/Character Dining)", "Empire Grill (帝國餐廳 - California Cuisine)", "Tick Tock Diner (滴答餐車 - Bakery)", "Hyperion Lounge (海波里恩酒廊)"], "Toy Story Hotel (玩具總動員飯店)": ["Lotso Garden Cafe (熊抱哥花園咖啡 - Buffet)"], "Celebration Hotel (樂祥飯店)": ["Wish Cafe (心願咖啡)", "Discover Cafe (探索咖啡)"] } };
 
         const defaultTripDays = [
