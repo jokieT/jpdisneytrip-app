@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>日本 2026 行程 App</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Vue.js 3 -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- FontAwesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
@@ -149,7 +145,11 @@
                     <div class="space-y-4 mt-6">
                         <div class="flex justify-between items-end"><h3 class="text-sm font-bold ml-2 opacity-50">SCHEDULE</h3><button @click="openEventModal()" class="neu-btn px-3 py-1 text-xs rounded-lg">+ 自訂行程</button></div>
                         <div v-for="(item, idx) in sortedEvents" :key="idx" class="neu-flat p-4 relative group">
-                            <button @click="deleteEvent(idx)" class="absolute top-2 right-2 text-xs opacity-30 hover:opacity-100 text-red-500 p-2">✕</button>
+                            <!-- EDIT Button (New) -->
+                            <button @click="editEventItem(item)" class="absolute top-2 right-8 text-xs opacity-30 hover:opacity-100 text-blue-500 p-2"><i class="fas fa-pencil-alt"></i></button>
+                            <!-- DELETE Button -->
+                            <button @click="deleteEvent(item)" class="absolute top-2 right-2 text-xs opacity-30 hover:opacity-100 text-red-500 p-2">✕</button>
+
                             <div class="flex gap-4">
                                 <div class="flex flex-col items-center min-w-[60px]"><div class="text-xs font-mono opacity-70">{{ item.startTime || '--:--' }}</div><div class="text-xs opacity-30">|</div><div class="text-xs font-mono opacity-70">{{ item.endTime || '' }}</div></div>
                                 <div class="flex-1">
@@ -189,7 +189,21 @@
         </nav>
         
         <!-- Modals -->
-        <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4"><div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]"><h3 class="font-bold text-lg">自訂行程</h3><div class="flex gap-2"><input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1"><input type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1"></div><input v-model="newEvent.title" placeholder="標題" class="neu-input w-full p-2"><textarea v-model="newEvent.desc" placeholder="詳情" class="neu-input w-full p-2 h-20"></textarea><input v-model="newEvent.note" placeholder="備註" class="neu-input w-full p-2 text-xs"><input v-model="newEvent.mapLink" placeholder="Maps Link" class="neu-input w-full p-2 text-xs"><div class="flex gap-3 pt-2"><button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">儲存</button><button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button></div></div></div>
+        <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4">
+            <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
+                <h3 class="font-bold text-lg">{{ editingEventIndex > -1 ? '修改行程' : '自訂行程' }}</h3>
+                <div class="flex gap-2"><input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1"><input type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1"></div>
+                <input v-model="newEvent.title" placeholder="標題" class="neu-input w-full p-2">
+                <textarea v-model="newEvent.desc" placeholder="詳情" class="neu-input w-full p-2 h-20"></textarea>
+                <input v-model="newEvent.note" placeholder="備註" class="neu-input w-full p-2 text-xs">
+                <input v-model="newEvent.mapLink" placeholder="Maps Link" class="neu-input w-full p-2 text-xs">
+                <div class="flex gap-3 pt-2">
+                    <button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">{{ editingEventIndex > -1 ? '確認修改' : '儲存' }}</button>
+                    <button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button>
+                </div>
+            </div>
+        </div>
+        
         <div v-if="showSettings" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center p-4"><div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]"><h3 class="font-bold text-lg mb-2">數據同步</h3><div class="space-y-2"><p class="text-xs opacity-70">1. 複製代碼</p><button @click="exportData" class="neu-btn w-full py-2 rounded text-sm text-blue-400">📋 複製</button></div><hr class="border-gray-500/20"><div class="space-y-2"><p class="text-xs opacity-70">2. 貼上代碼</p><textarea v-model="importString" placeholder="貼上..." class="neu-input w-full h-24 p-2 text-[10px] font-mono"></textarea><button @click="importData" class="neu-btn w-full py-2 rounded text-sm text-green-500">📥 匯入</button></div><div class="pt-4"><button @click="showSettings = false" class="neu-btn w-full py-2 rounded-lg text-red-400">關閉</button></div></div></div>
     </div>
    <script>
@@ -228,6 +242,9 @@
                 const savedLocations = ref([{ name: '新宿格拉斯麗酒店', url: 'https://goo.gl/maps/example', showEmbed: false }]);
                 const newLocation = ref({ name: '', url: '' });
                 const tabs = [{id: 'schedule', icon: 'fas fa-calendar-alt'}, {id: 'map', icon: 'fas fa-map-marked'}, {id: 'money', icon: 'fas fa-wallet'}, {id: 'shopping', icon: 'fas fa-shopping-bag'}];
+                
+                // Track editing event
+                const editingEventIndex = ref(-1);
 
                 const currentDay = computed(() => tripDays.value[selectedDayIndex.value]);
                 const currentParkAreas = computed(() => currentDay.value?.parkName ? Object.keys(disneyDB[currentDay.value.parkName] || {}) : []);
@@ -256,9 +273,38 @@
                 const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light'); };
                 const selectSearchResult = (res) => { tempDisney.value.area = res.raw.area; if(res.raw.area === 'HOTEL_DINING') { tempDisney.value.subArea = res.raw.subArea; } else { if(res.park !== 'HOTEL' && res.raw.park !== currentDay.value.parkName) { alert('此設施位於 ' + res.park + '，請先切換到該日行程。'); return; } tempDisney.value.type = res.raw.type; } tempDisney.value.facility = res.raw.item; searchQuery.value = ''; };
                 const addDisneyEvent = () => { if (!tempDisney.value.facility) return; currentDay.value.events.push({ startTime: tempDisney.value.start, endTime: tempDisney.value.end, title: tempDisney.value.facility, desc: tempDisney.value.area === 'HOTEL_DINING' ? '🏨 ' + tempDisney.value.subArea : tempDisney.value.area + ' - ' + tempDisney.value.type, note: tempDisney.value.note, showMap: false }); tempDisney.value = { start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' }; };
-                const openEventModal = () => { newEvent.value = { startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' }; showModal.value = true; };
-                const saveCustomEvent = () => { if(!newEvent.value.title) return; currentDay.value.events.push({ ...newEvent.value, showMap: false }); showModal.value = false; };
-                const deleteEvent = (index) => { if(confirm('刪除?')) currentDay.value.events.splice(index, 1); };
+                
+                // --- Event Logic Updated for Edit ---
+                const openEventModal = () => { editingEventIndex.value = -1; newEvent.value = { startTime: '', endTime: '', title: '', desc: '', note: '', mapLink: '' }; showModal.value = true; };
+                
+                const editEventItem = (item) => {
+                    // Find the index in the original array
+                    const idx = currentDay.value.events.indexOf(item);
+                    if (idx > -1) {
+                        newEvent.value = { ...item }; // Copy data
+                        editingEventIndex.value = idx;
+                        showModal.value = true;
+                    }
+                };
+
+                const saveCustomEvent = () => { 
+                    if(!newEvent.value.title) return; 
+                    if (editingEventIndex.value > -1) {
+                        // Update existing
+                        currentDay.value.events[editingEventIndex.value] = { ...newEvent.value, showMap: false };
+                    } else {
+                        // Add new
+                        currentDay.value.events.push({ ...newEvent.value, showMap: false }); 
+                    }
+                    showModal.value = false; 
+                    editingEventIndex.value = -1;
+                };
+
+                const deleteEvent = (item) => { 
+                    const idx = currentDay.value.events.indexOf(item);
+                    if(idx > -1 && confirm('刪除?')) currentDay.value.events.splice(idx, 1); 
+                };
+
                 const getEmbedUrl = (url) => 'https://maps.google.com/maps?q=' + encodeURIComponent(url) + '&t=&z=13&ie=UTF8&iwloc=&output=embed';
                 const toggleMap = (idx) => sortedEvents.value[idx].showMap = !sortedEvents.value[idx].showMap;
                 const addOrUpdateExpense = () => { if (!newExpense.value.amount || !newExpense.value.item) return; if (isEditingExpense.value) { const idx = expenses.value.findIndex(e => e.id === newExpense.value.id); if(idx !== -1) expenses.value[idx] = { ...newExpense.value }; isEditingExpense.value = false; } else { expenses.value.unshift({ ...newExpense.value, id: Date.now() }); } newExpense.value = { id: null, amount: '', method: 'cash', item: '' }; };
@@ -299,7 +345,7 @@
                 watch(savedLocations, (v) => localStorage.setItem('trip2026_locs', JSON.stringify(v)), { deep: true });
                 watch(isDarkMode, (v) => localStorage.setItem('trip2026_theme', v));
 
-                return { isDarkMode, toggleTheme, currentTab, tabs, selectedDayIndex, tripDays, currentDay, currentParkAreas, currentFacilityList, tempDisney, addDisneyEvent, canSelectFacility, sortedEvents, showModal, newEvent, openEventModal, saveCustomEvent, deleteEvent, expenses, newExpense, addOrUpdateExpense, editExpense, deleteExpense, isEditingExpense, cancelEditExpense, shoppingList, newShoppingItem, addShoppingItem, savedLocations, newLocation, addLocation, deleteLocation, openMap, exchangeRate, totalSpending, toggleMap, getEmbedUrl, showSettings, importString, exportData, importData, searchQuery, searchResults, selectSearchResult, disneyDB };
+                return { isDarkMode, toggleTheme, currentTab, tabs, selectedDayIndex, tripDays, currentDay, currentParkAreas, currentFacilityList, tempDisney, addDisneyEvent, canSelectFacility, sortedEvents, showModal, newEvent, openEventModal, saveCustomEvent, deleteEvent, expenses, newExpense, addOrUpdateExpense, editExpense, deleteExpense, isEditingExpense, cancelEditExpense, shoppingList, newShoppingItem, addShoppingItem, savedLocations, newLocation, addLocation, deleteLocation, openMap, exchangeRate, totalSpending, toggleMap, getEmbedUrl, showSettings, importString, exportData, importData, searchQuery, searchResults, selectSearchResult, disneyDB, editEventItem, editingEventIndex };
             }
         }).mount('#app');
     </script>
