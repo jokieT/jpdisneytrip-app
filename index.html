@@ -23,6 +23,9 @@
         .flight-line { border-top: 2px dashed var(--text-color); opacity: 0.3; position: absolute; top: 50%; left: 20%; right: 20%; z-index: 0; }
         .modal-overlay { background-color: rgba(0,0,0,0.85); backdrop-filter: blur(4px); }
         select { -webkit-appearance: none; appearance: none; }
+        /* Style for editable inputs to look like text */
+        .editable-text { background: transparent; border: none; outline: none; color: inherit; width: 100%; text-align: inherit; padding: 0; margin: 0; }
+        .editable-text:focus { border-bottom: 1px dashed var(--text-color); }
     </style>
 </head>
 <body class="h-screen overflow-hidden select-none">
@@ -55,30 +58,35 @@
                 <!-- Safe Render -->
                 <div v-if="currentDay">
                     
-                    <!-- Weather & Flight Card -->
+                    <!-- Weather & Flight Card (NOW EDITABLE) -->
                     <div class="neu-flat p-6 relative overflow-hidden mb-6">
-                        <div class="absolute -right-6 -top-6 text-9xl opacity-10 rotate-12">{{ currentDay.weather?.icon || '🌤️' }}</div>
+                        <div class="absolute -right-6 -top-6 text-9xl opacity-10 rotate-12 pointer-events-none">{{ currentDay.weather?.icon || '🌤️' }}</div>
                         <div class="relative z-10 flex justify-between items-start">
-                            <div>
-                                <h2 class="text-2xl font-bold">{{ currentDay.location }}</h2>
-                                <div class="text-sm opacity-60 mt-1">{{ currentDay.weather?.temp || '20°C' }} {{ currentDay.weather?.icon || '' }}</div>
+                            <div class="w-full">
+                                <!-- Editable Location -->
+                                <input v-model="currentDay.location" class="editable-text text-2xl font-bold mb-1" placeholder="地點">
+                                <!-- Editable Weather -->
+                                <div class="flex items-center gap-2 text-sm opacity-60">
+                                    <input v-model="currentDay.weather.temp" class="editable-text w-12" placeholder="Temp">
+                                    <input v-model="currentDay.weather.icon" class="editable-text w-8" placeholder="Icon">
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Flight Info -->
+                        <!-- Flight Info (NOW EDITABLE) -->
                         <div v-if="currentDay.flight" class="mt-6 pt-4 border-t border-gray-500/20 relative">
                             <div class="flight-line"></div>
                             <div class="flex justify-between items-center relative z-10">
-                                <div class="text-center bg-[var(--card-bg)] px-2">
-                                    <div class="text-2xl font-bold">{{ currentDay.flight.from }}</div>
-                                    <div class="text-xs opacity-60">{{ currentDay.flight.depTime }}</div>
-                                    <div class="text-[10px] opacity-40">{{ currentDay.flight.fromTerminal }}</div>
+                                <div class="text-center bg-[var(--card-bg)] px-2 w-1/3">
+                                    <input v-model="currentDay.flight.from" class="editable-text text-2xl font-bold text-center">
+                                    <input v-model="currentDay.flight.depTime" class="editable-text text-xs opacity-60 text-center" placeholder="Time">
+                                    <input v-model="currentDay.flight.fromTerminal" class="editable-text text-[10px] opacity-40 text-center" placeholder="Term">
                                 </div>
                                 <i class="fas fa-plane text-xl opacity-50"></i>
-                                <div class="text-center bg-[var(--card-bg)] px-2">
-                                    <div class="text-2xl font-bold">{{ currentDay.flight.to }}</div>
-                                    <div class="text-xs opacity-60">{{ currentDay.flight.arrTime }}</div>
-                                    <div class="text-[10px] opacity-40">{{ currentDay.flight.toTerminal }}</div>
+                                <div class="text-center bg-[var(--card-bg)] px-2 w-1/3">
+                                    <input v-model="currentDay.flight.to" class="editable-text text-2xl font-bold text-center">
+                                    <input v-model="currentDay.flight.arrTime" class="editable-text text-xs opacity-60 text-center" placeholder="Time">
+                                    <input v-model="currentDay.flight.toTerminal" class="editable-text text-[10px] opacity-40 text-center" placeholder="Term">
                                 </div>
                             </div>
                         </div>
@@ -157,7 +165,7 @@
                 </div>
             </section>
 
-            <!-- OTHER TABS (Simplified for stability) -->
+            <!-- OTHER TABS -->
             <section v-if="currentTab === 'money'" class="space-y-6">
                 <div class="neu-flat p-6 text-center"><div class="text-xs opacity-50 mb-1">總支出 (TOTAL)</div><div class="text-3xl font-light">¥ {{ totalSpending.toLocaleString() }}</div><div class="text-sm opacity-50 mt-1">≈ HK$ {{ (totalSpending * exchangeRate).toFixed(1) }}</div></div>
                 <div class="neu-flat p-5 space-y-4">
@@ -271,24 +279,14 @@
                     if(savedDays) {
                         try {
                             const parsed = JSON.parse(savedDays);
-                            // *** CRITICAL FIX: RE-INJECT MISSING STATIC DATA (Weather/Flight) ***
-                            // Because local storage might have "old" data without these fields.
                             parsed.forEach((day, i) => {
                                 if(defaultTripDays[i]) {
-                                    // Restore flight if missing but should exist (Day 0 & 5)
-                                    if(defaultTripDays[i].flight && !day.flight) {
-                                        day.flight = defaultTripDays[i].flight;
-                                    }
-                                    // Restore weather if missing (All days)
-                                    if(!day.weather) {
-                                        day.weather = defaultTripDays[i].weather;
-                                    }
+                                    if(defaultTripDays[i].flight && !day.flight) { day.flight = defaultTripDays[i].flight; }
+                                    if(!day.weather) { day.weather = defaultTripDays[i].weather; }
                                 }
                             });
                             tripDays.value = parsed;
-                        } catch(e) {
-                            console.error("Fix error", e);
-                        }
+                        } catch(e) { console.error("Fix error", e); }
                     }
                     if(localStorage.getItem('trip2026_expenses')) expenses.value = JSON.parse(localStorage.getItem('trip2026_expenses'));
                     if(localStorage.getItem('trip2026_shop')) shoppingList.value = JSON.parse(localStorage.getItem('trip2026_shop'));
