@@ -263,4 +263,270 @@ body { background-color: #1a1b1e; }
 .animate-fade { animation: fadeIn 0.2s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 </style>
+<script setup>
+import { ref, computed } from 'vue'
+
+// 1. 全局狀態
+const activeTab = ref('itinerary')
+const showSettings = ref(false)
+const tripTitle = ref('TOKYO 2026')
+const tripDate = ref('JAN 26 - JAN 31')
+const activeMapUrl = ref(null)
+const activeMapNote = ref('')
+
+// 2. Disney 資料
+const disneyLands = {
+  land: [
+    { name: '美女與野獸', jp: '美女と野獣', type: 'attraction' },
+    { name: '貝馬克斯', jp: 'ベイマックス', type: 'attraction' },
+    { name: '巨雷山', jp: 'ビッグサンダー', type: 'attraction' },
+    { name: '太空山', jp: 'スペース・マウンテン', type: 'attraction' },
+    { name: '幽靈公館', jp: 'ホーンテッドマンション', type: 'attraction' }
+  ],
+  sea: [
+    { name: '夢幻奇航', jp: 'ソアリン', type: 'attraction' },
+    { name: '玩具總動員', jp: 'トイ・ストーリー', type: 'attraction' },
+    { name: '驚魂古塔', jp: 'タワー・オブ・テラー', type: 'attraction' },
+    { name: '印第安納瓊斯', jp: 'インディ・ジョーンズ', type: 'attraction' }
+  ]
+}
+
+// 3. 行程資料
+const itinerary = ref([
+  {
+    id: 1, day: 'Day 1', date: '1/26',
+    items: [
+      { id: 101, time: '10:00', title: '成田機場 (NRT)', type: 'flight', note: 'CX500 降落', mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3236.597!2d140.383!3d35.785!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6022f37c3746653f%3A0x6b6d859d9551717!2sNarita%20International%20Airport!5e0!3m2!1sen!2shk' },
+      { id: 102, time: '12:00', title: 'Skyliner 去上野', type: 'transport', note: '車飛已買', mapUrl: '' },
+      { id: 103, time: '13:30', title: '上野酒店 Check-in', type: 'hotel', note: 'APA Hotel Ueno', mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3239.656!2d139.771!3d35.710!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188e9ce34d31d7%3A0x7716940d990422!2sUeno%20Station!5e0!3m2!1sen!2shk' }
+    ]
+  },
+  {
+    id: 2, day: 'Day 2', date: '1/27', weather: '☀️ 12°C',
+    items: [
+      { id: 201, time: '08:30', title: '迪士尼樂園 (Land)', type: 'activity', note: '早起排隊！', mapUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3242.493!2d139.878!3d35.632!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60187d03114737b3%3A0xe4d93636d509d3cb!2sTokyo%20Disneyland!5e0!3m2!1sen!2shk' }
+    ]
+  }
+])
+
+// 4. 其他資料 (Packing, Todo, Expense)
+const defaultPackingList = [
+  { id: 'p1', name: '護照 (Passport)', category: 'docs', count: 1, checked: false },
+  { id: 'p2', name: '日圓現金', category: 'docs', count: 1, checked: false },
+  { id: 'p3', name: 'Credit Cards', category: 'docs', count: 2, checked: false },
+  { id: 'p4', name: '上網 SIM 卡', category: 'docs', count: 1, checked: false },
+  { id: 'p5', name: '更換衣物', category: 'clothes', count: 5, checked: false },
+  { id: 'p6', name: '內衣褲', category: 'clothes', count: 6, checked: false },
+  { id: 'p7', name: '電話充電線', category: 'gadgets', count: 2, checked: false },
+  { id: 'p8', name: '轉插頭', category: 'gadgets', count: 2, checked: false },
+  { id: 'p9', name: '個人藥物', category: 'personal', count: 1, checked: false }
+]
+const packingList = ref([...defaultPackingList])
+const todos = ref([
+  { id: 1, title: '購買旅遊保險', note: '比較幾間先', category: 'prep', status: 'done' },
+  { id: 2, title: '預訂 Skyliner 車飛', note: 'Klook 買平啲', category: 'prep', status: 'process' }
+])
+const expenses = ref([
+  { id: 1, title: 'Skyliner 車飛', price: 2570, quantity: 2, type: 'transport' },
+  { id: 2, title: '便利店宵夜', price: 1200, quantity: 1, type: 'food' },
+  { id: 3, title: '迪士尼門票', price: 9400, quantity: 2, type: 'activity' }
+])
+
+// 5. 輸入框狀態
+const newTime = ref('')
+const newTitle = ref('')
+const newNote = ref('')
+const newMapUrl = ref('')
+const selectedPark = ref('land')
+const selectedFacility = ref('')
+const newPackingItemName = ref('')
+const newPackingCategory = ref('others')
+const newTodoTitle = ref('')
+const newTodoCategory = ref('prep')
+const newExpTitle = ref('')
+const newExpPrice = ref('')
+
+// 編輯狀態
+const isEditingTodo = ref(false)
+const editTodoForm = ref({})
+const isEditingExpense = ref(false)
+const editExpenseForm = ref({})
+
+// 6. 計算屬性
+const totalExpense = computed(() => expenses.value.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0))
+const packingProgress = computed(() => packingList.value.length ? Math.round((packingList.value.filter(i => i.checked).length / packingList.value.length) * 100) : 0)
+const todoProgress = computed(() => todos.value.length ? Math.round((todos.value.filter(t => t.status === 'done').length / todos.value.length) * 100) : 0)
+const packingByCategory = computed(() => {
+  const groups = { docs: { name: '🛂 證件', items: [] }, clothes: { name: '👕 衣物', items: [] }, gadgets: { name: '🔌 電子', items: [] }, personal: { name: '🧴 用品', items: [] }, others: { name: '📦 其他', items: [] } }
+  packingList.value.forEach(item => { (groups[item.category] || groups.others).items.push(item) })
+  return groups
+})
+
+// 7. 操作函數
+const openMap = (url, note) => { if (url) { activeMapUrl.value = url; activeMapNote.value = note || '地圖預覽'; } }
+const closeMap = () => { activeMapUrl.value = null; activeMapNote.value = ''; }
+const addDisneyItem = () => { if (selectedFacility.value) { newTitle.value = selectedFacility.value.name + ' ' + selectedFacility.value.jp; newNote.value = '預計排隊時間: -- min'; } }
+const addItem = (dayIndex) => { if (newTitle.value) { itinerary.value[dayIndex].items.push({ id: Date.now(), time: newTime.value || '--:--', title: newTitle.value, type: 'activity', note: newNote.value, mapUrl: newMapUrl.value }); newTitle.value = ''; newTime.value = ''; newNote.value = ''; newMapUrl.value = ''; } }
+const addPackingItem = () => { if (newPackingItemName.value) { packingList.value.push({ id: Date.now(), name: newPackingItemName.value, category: newPackingCategory.value, count: 1, checked: false }); newPackingItemName.value = ''; } }
+const updatePackCount = (item, d) => { if (item.count + d > 0) item.count += d }
+const addTodo = () => { if (newTodoTitle.value) { todos.value.push({ id: Date.now(), title: newTodoTitle.value, note: '', category: newTodoCategory.value, status: 'pending' }); newTodoTitle.value = ''; } }
+const deleteTodo = (id) => { todos.value = todos.value.filter(t => t.id !== id) }
+const cycleStatus = (t) => { t.status = t.status === 'pending' ? 'process' : (t.status === 'process' ? 'done' : 'pending') }
+const openEditTodo = (t) => { isEditingTodo.value = true; editTodoForm.value = { ...t }; }
+const saveEditTodo = () => { const idx = todos.value.findIndex(t => t.id === editTodoForm.value.id); if (idx !== -1) todos.value[idx] = { ...editTodoForm.value }; isEditingTodo.value = false; }
+const addExpense = () => { if (newExpTitle.value && newExpPrice.value) { expenses.value.push({ id: Date.now(), title: newExpTitle.value, price: parseInt(newExpPrice.value), quantity: 1, type: 'food' }); newExpTitle.value = ''; newExpPrice.value = ''; } }
+const updateExpQuantity = (e, d) => { if (e.quantity + d > 0) e.quantity += d }
+const openEditExpense = (e) => { isEditingExpense.value = true; editExpenseForm.value = { ...e }; }
+const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id === editExpenseForm.value.id); if (idx !== -1) expenses.value[idx] = { ...editExpenseForm.value }; isEditingExpense.value = false; }
+</script>
+<template>
+  <div class="min-h-screen bg-[#1a1b1e] text-gray-200 font-sans pb-28">
+    
+    <!-- 1. 頂部 Header -->
+    <header class="sticky top-0 z-30 bg-[#1a1b1e]/90 backdrop-blur-md px-6 py-4 shadow-sm border-b border-gray-800 flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-black tracking-widest text-white drop-shadow-md">{{ tripTitle }}</h1>
+        <p class="text-xs text-blue-400 font-mono tracking-wide">{{ tripDate }}</p>
+      </div>
+      <button class="p-2 rounded-full bg-[#25262b] shadow-neumorphism active:shadow-inner transition-all">⚙️</button>
+    </header>
+
+    <main class="p-4 max-w-lg mx-auto space-y-8">
+      
+      <!-- TAB 1: ITINERARY (行程) -->
+      <div v-if="activeTab === 'itinerary'" class="space-y-8 animate-fade">
+        <div class="p-5 rounded-2xl bg-[#1a1b1e] shadow-neumorphism border border-gray-800/50">
+          <h2 class="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider">📝 新增行程</h2>
+          <div class="mb-4 p-3 bg-[#25262b] rounded-xl border border-gray-700/50">
+            <div class="flex gap-2 mb-2">
+              <button @click="selectedPark = 'land'" :class="selectedPark === 'land' ? 'bg-pink-600 text-white' : 'bg-gray-700 text-gray-400'" class="flex-1 py-1 rounded text-xs transition-colors">Land</button>
+              <button @click="selectedPark = 'sea'" :class="selectedPark === 'sea' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400'" class="flex-1 py-1 rounded text-xs transition-colors">Sea</button>
+            </div>
+            <select v-model="selectedFacility" @change="addDisneyItem" class="w-full bg-[#1a1b1e] text-sm p-2 rounded border border-gray-700 outline-none text-gray-300">
+              <option value="">快速選擇 Disney 設施...</option>
+              <option v-for="item in disneyLands[selectedPark]" :key="item.name" :value="item">{{ item.name }}</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <input v-model="newTime" type="time" class="col-span-1 bg-[#1a1b1e] rounded-lg p-3 text-sm border border-gray-700 shadow-inner outline-none">
+            <input v-model="newTitle" type="text" placeholder="標題 / Title" class="col-span-2 bg-[#1a1b1e] rounded-lg p-3 text-sm border border-gray-700 shadow-inner outline-none">
+          </div>
+          <input v-model="newNote" type="text" placeholder="備註 / Notes" class="w-full mb-3 bg-[#1a1b1e] rounded-lg p-3 text-sm border border-gray-700 shadow-inner outline-none">
+          <input v-model="newMapUrl" type="text" placeholder="Google Maps Embed URL" class="w-full mb-4 bg-[#1a1b1e] rounded-lg p-3 text-xs border border-gray-700 shadow-inner outline-none text-gray-500">
+          <button @click="addItem(0)" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold shadow-neumorphism hover:bg-blue-500 active:translate-y-0.5 transition-all">加入 Day 1</button>
+        </div>
+
+        <div v-for="(day, dIndex) in itinerary" :key="dIndex">
+          <div class="flex justify-between items-end mb-4 px-2">
+            <h2 class="text-xl font-bold text-white">{{ day.day }} <span class="text-sm text-gray-500 font-normal ml-2">{{ day.date }}</span></h2>
+            <span v-if="day.weather" class="text-sm bg-gray-800 px-2 py-1 rounded text-yellow-500 border border-gray-700">{{ day.weather }}</span>
+          </div>
+          <div class="space-y-4">
+            <div v-for="item in day.items" :key="item.id" class="relative p-4 rounded-xl bg-[#25262b] border border-gray-800 shadow-neumorphism flex gap-4 overflow-hidden group">
+              <div class="absolute left-0 top-0 bottom-0 w-1.5" :class="item.type === 'transport' ? 'bg-blue-500' : (item.type === 'hotel' ? 'bg-yellow-500' : 'bg-pink-500')"></div>
+              <div class="flex flex-col items-center justify-start min-w-[50px] pt-1">
+                <span class="text-sm font-bold text-gray-300">{{ item.time }}</span>
+                <div class="h-full w-[1px] bg-gray-700 mt-2"></div>
+              </div>
+              <div class="flex-1">
+                <h3 class="font-bold text-white text-lg leading-snug">{{ item.title }}</h3>
+                <p v-if="item.note" class="text-xs text-gray-400 mt-1 bg-black/20 p-2 rounded inline-block">{{ item.note }}</p>
+                <div v-if="item.mapUrl" class="mt-3">
+                  <button @click="openMap(item.mapUrl, item.title)" class="text-xs flex items-center gap-1 bg-gray-800 hover:bg-gray-700 text-blue-400 px-3 py-1.5 rounded-lg border border-gray-700 transition-colors">📍 查看地圖</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: PACKING (行李) -->
+      <div v-if="activeTab === 'packing'" class="space-y-6 animate-fade">
+        <div class="p-6 rounded-2xl bg-[#25262b] shadow-neumorphism border border-gray-800 relative overflow-hidden">
+          <div class="flex justify-between items-end mb-2 relative z-10">
+            <div><h2 class="text-2xl font-bold text-white">執行李 List</h2><p class="text-xs text-gray-400 mt-1">Ready for Tokyo?</p></div>
+            <div class="text-right"><span class="text-3xl font-black text-yellow-400">{{ packingProgress }}%</span></div>
+          </div>
+          <div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div class="h-full bg-yellow-400 transition-all duration-500" :style="{ width: packingProgress + '%' }"></div></div>
+        </div>
+        <div class="p-4 rounded-xl bg-[#1a1b1e] border border-gray-700/50 shadow-inner flex gap-2">
+           <select v-model="newPackingCategory" class="bg-[#25262b] text-xs text-gray-300 p-2 rounded border border-gray-700 outline-none"><option value="clothes">👕 衣物</option><option value="gadgets">🔌 電子</option><option value="personal">🧴 用品</option><option value="docs">🛂 證件</option><option value="others">📦 其他</option></select>
+          <input v-model="newPackingItemName" @keyup.enter="addPackingItem" type="text" placeholder="新增物品..." class="flex-1 bg-[#25262b] text-sm text-white p-2 rounded border border-gray-700 outline-none">
+          <button @click="addPackingItem" class="bg-yellow-500 hover:bg-yellow-400 text-black px-3 rounded font-bold">+</button>
+        </div>
+        <div v-for="(group, key) in packingByCategory" :key="key" class="space-y-3" v-show="group.items.length > 0">
+          <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider pl-1">{{ group.name }}</h3>
+          <div v-for="item in group.items" :key="item.id" class="p-3 rounded-xl bg-[#25262b] border border-gray-800 shadow-neumorphism flex items-center justify-between" :class="{ 'opacity-50 grayscale': item.checked }">
+            <div class="flex items-center gap-3 flex-1 cursor-pointer" @click="item.checked = !item.checked">
+              <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors" :class="item.checked ? 'border-yellow-500 bg-yellow-500' : 'border-gray-600'"><span v-if="item.checked" class="text-black text-xs font-bold">✓</span></div>
+              <span class="text-white font-medium" :class="{ 'line-through text-gray-500': item.checked }">{{ item.name }}</span>
+            </div>
+            <div class="flex items-center bg-[#1a1b1e] rounded-lg border border-gray-700 p-1">
+              <button @click="updatePackCount(item, -1)" class="w-6 text-gray-400">-</button><span class="w-6 text-center text-xs font-mono text-blue-300">{{ item.count }}</span><button @click="updatePackCount(item, 1)" class="w-6 text-gray-400">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: TODO (待辦) -->
+      <div v-if="activeTab === 'todo'" class="space-y-6 animate-fade">
+        <div class="p-6 rounded-2xl bg-[#25262b] shadow-neumorphism border border-gray-800 relative"><div class="flex justify-between items-end mb-2 relative z-10"><div><h2 class="text-2xl font-bold text-white">準備清單</h2></div><div class="text-right"><span class="text-3xl font-black text-blue-500">{{ todoProgress }}%</span></div></div><div class="w-full h-2 bg-gray-700 rounded-full mt-2"><div class="h-full bg-blue-500 transition-all duration-500" :style="{ width: todoProgress + '%' }"></div></div></div>
+        <div class="p-4 rounded-xl bg-[#1a1b1e] border border-gray-700/50 shadow-inner flex gap-2">
+          <input v-model="newTodoTitle" @keyup.enter="addTodo" type="text" placeholder="新增待辦..." class="flex-1 bg-[#25262b] text-sm text-white p-2 rounded border border-gray-700 outline-none">
+          <button @click="addTodo" class="bg-blue-600 hover:bg-blue-500 text-white px-3 rounded font-bold">+</button>
+        </div>
+        <div class="space-y-3">
+          <div v-for="todo in todos" :key="todo.id" class="p-4 rounded-xl bg-[#25262b] border border-gray-800 shadow-neumorphism flex items-start gap-3 transition-all" :class="{ 'opacity-60': todo.status === 'done' }">
+            <button @click="cycleStatus(todo)" class="mt-1 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all" :class="{ 'border-gray-500': todo.status === 'pending', 'border-yellow-500 bg-yellow-500/20': todo.status === 'process', 'border-green-500 bg-green-500': todo.status === 'done' }"></button>
+            <div class="flex-1 cursor-pointer" @click="openEditTodo(todo)">
+              <div class="flex items-center gap-2 mb-1"><span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 border border-gray-700 text-blue-400">{{ todo.category }}</span><span class="text-xs font-bold uppercase px-1.5 py-0.5 rounded bg-gray-800">{{ todo.status }}</span></div>
+              <h3 class="text-white font-medium" :class="{ 'line-through text-gray-500': todo.status === 'done' }">{{ todo.title }}</h3>
+            </div>
+            <button @click="deleteTodo(todo.id)" class="text-gray-600 hover:text-red-400">🗑️</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: EXPENSE (記帳) -->
+      <div v-if="activeTab === 'expense'" class="space-y-6 animate-fade">
+        <div class="p-6 rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 text-center"><p class="text-gray-400 text-sm">目前總消費 (Total)</p><h2 class="text-4xl font-bold text-white mt-2">¥{{ totalExpense.toLocaleString() }}</h2></div>
+        <div class="p-4 rounded-xl bg-[#1a1b1e] border border-gray-700/50 shadow-inner grid grid-cols-4 gap-2">
+          <input v-model="newExpTitle" type="text" placeholder="項目名稱" class="col-span-2 bg-[#25262b] text-sm text-white p-2 rounded border border-gray-700 outline-none">
+          <input v-model="newExpPrice" type="number" placeholder="¥ 價格" class="col-span-1 bg-[#25262b] text-sm text-white p-2 rounded border border-gray-700 outline-none">
+          <button @click="addExpense" class="col-span-1 bg-green-600 hover:bg-green-500 text-white rounded font-bold">Add</button>
+        </div>
+        <div class="space-y-3">
+          <div v-for="exp in expenses" :key="exp.id" class="flex flex-col p-4 bg-[#25262b] rounded-xl border border-gray-800 shadow-neumorphism">
+            <div class="flex justify-between items-start mb-2"><div><span class="text-white font-bold block">{{ exp.title }}</span><span class="text-xs text-gray-500">單價: ¥{{ exp.price }}</span></div><div class="text-right"><span class="font-mono text-green-400 font-bold block text-lg">¥{{ (exp.price * exp.quantity).toLocaleString() }}</span><button @click="openEditExpense(exp)" class="text-xs text-gray-500 underline hover:text-white">🖊️ 編輯</button></div></div>
+            <div class="flex items-center justify-between bg-[#1a1b1e] rounded-lg p-2 border border-gray-700/50"><span class="text-xs text-gray-400">數量 Qty</span><div class="flex items-center gap-3"><button @click="updateExpQuantity(exp, -1)" class="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white">-</button><span class="text-sm font-mono text-white w-4 text-center">{{ exp.quantity }}</span><button @click="updateExpQuantity(exp, 1)" class="w-6 h-6 rounded bg-gray-700 hover:bg-gray-600 text-white">+</button></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 底部導航 & Modals -->
+    <nav class="fixed bottom-6 left-6 right-6 h-16 bg-[#25262b]/95 backdrop-blur-md rounded-2xl flex justify-around items-center px-2 shadow-[0_8px_32px_rgba(0,0,0,0.5)] border border-gray-700 z-40">
+      <button @click="activeTab = 'itinerary'" :class="activeTab === 'itinerary' ? 'text-blue-400 scale-125' : 'text-gray-500'" class="p-2 transition-all text-2xl">📅</button>
+      <button @click="activeTab = 'packing'" :class="activeTab === 'packing' ? 'text-yellow-400 scale-125' : 'text-gray-500'" class="p-2 transition-all text-2xl">🧳</button>
+      <button @click="activeTab = 'todo'" :class="activeTab === 'todo' ? 'text-purple-400 scale-125' : 'text-gray-500'" class="p-2 transition-all text-2xl">✅</button>
+      <button @click="activeTab = 'expense'" :class="activeTab === 'expense' ? 'text-green-400 scale-125' : 'text-gray-500'" class="p-2 transition-all text-2xl">💰</button>
+    </nav>
+
+    <!-- 地圖 Modal -->
+    <div v-if="activeMapUrl" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade" @click.self="closeMap"><div class="w-full max-w-3xl bg-[#1a1b1e] rounded-2xl overflow-hidden shadow-2xl border border-gray-700 flex flex-col h-[70vh]"><div class="flex justify-between items-center p-4 bg-[#25262b] border-b border-gray-700"><div><h3 class="text-white font-bold text-lg">🗺️ 地圖導航</h3><p class="text-xs text-gray-400">{{ activeMapNote }}</p></div><button @click="closeMap" class="w-10 h-10 rounded-full bg-gray-700 hover:bg-red-500/80 text-white flex items-center justify-center transition-colors">✕</button></div><div class="flex-1 relative bg-gray-800"><iframe :src="activeMapUrl" class="absolute inset-0 w-full h-full" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div></div></div>
+    
+    <!-- 編輯 Modal (Todo) -->
+    <div v-if="isEditingTodo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade" @click.self="isEditingTodo = false"><div class="w-full max-w-md bg-[#25262b] rounded-2xl p-6 border border-gray-700"><h3 class="text-white font-bold mb-4">編輯事項</h3><input v-model="editTodoForm.title" class="w-full bg-[#1a1b1e] text-white p-2 rounded border border-gray-700 mb-2"><div class="flex gap-2"><button @click="isEditingTodo = false" class="flex-1 py-2 bg-gray-700 rounded text-gray-300">取消</button><button @click="saveEditTodo" class="flex-1 py-2 bg-blue-600 rounded text-white font-bold">儲存</button></div></div></div>
+    
+    <!-- 編輯 Modal (Expense) -->
+    <div v-if="isEditingExpense" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade" @click.self="isEditingExpense = false"><div class="w-full max-w-md bg-[#25262b] rounded-2xl p-6 border border-gray-700"><h3 class="text-white font-bold mb-4">編輯消費</h3><input v-model="editExpenseForm.title" class="w-full bg-[#1a1b1e] text-white p-2 rounded border border-gray-700 mb-2"><div class="flex gap-2 mb-4"><input v-model="editExpenseForm.price" type="number" class="w-1/2 bg-[#1a1b1e] text-white p-2 rounded border border-gray-700"><input v-model="editExpenseForm.quantity" type="number" class="w-1/2 bg-[#1a1b1e] text-white p-2 rounded border border-gray-700"></div><div class="flex gap-2"><button @click="isEditingExpense = false" class="flex-1 py-2 bg-gray-700 rounded text-gray-300">取消</button><button @click="saveEditExpense" class="flex-1 py-2 bg-blue-600 rounded text-white font-bold">儲存</button></div></div></div>
+  </div>
+</template>
+
+<style>
+body { background-color: #1a1b1e; }
+.shadow-neumorphism { box-shadow: 8px 8px 16px #121315, -8px -8px 16px #222327; }
+.animate-fade { animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+</style>
 
