@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>日本 2026 行程 App (V2)</title>
+    <title>日本 2026 行程 App (V2.1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
 
     <style>
-        [v-cloak] { display: none !important; }
+        /* 移除 v-cloak 的 display:none 改為 opacity，避免完全黑屏 */
+        [v-cloak] { opacity: 0 !important; }
         :root { --bg-color: #f0f2f5; --text-color: #4a5568; --card-bg: #e0e5ec; --shadow-light: #ffffff; --shadow-dark: #a3b1c6; --input-bg: #e0e5ec; }
+        /* 確保 Dark Mode 樣式正確 */
         [data-theme="dark"] { --bg-color: #292d32; --text-color: #a0a5a9; --card-bg: #292d32; --shadow-light: #32373d; --shadow-dark: #202327; --input-bg: #292d32; }
+        
         body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Noto Sans TC', sans-serif; transition: background-color 0.3s, color 0.3s; }
         .neu-flat { background: var(--card-bg); box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.3s; }
         .neu-pressed { background: var(--card-bg); box-shadow: inset 6px 6px 12px var(--shadow-dark), inset -6px -6px 12px var(--shadow-light); border-radius: 15px; }
@@ -26,10 +29,9 @@
         .editable-text { background: transparent; border: none; outline: none; color: inherit; width: 100%; text-align: inherit; padding: 0; margin: 0; }
         .editable-text:focus { border-bottom: 1px dashed var(--text-color); }
         
-        /* Status Colors */
-        .status-pending { color: #f87171; } /* Red */
-        .status-progress { color: #60a5fa; } /* Blue */
-        .status-done { color: #34d399; text-decoration: line-through; opacity: 0.6; } /* Green */
+        .status-pending { color: #f87171; }
+        .status-progress { color: #60a5fa; }
+        .status-done { color: #34d399; text-decoration: line-through; opacity: 0.6; }
     </style>
 </head>
 <body class="h-screen overflow-hidden select-none">
@@ -51,7 +53,7 @@
         <!-- MAIN CONTENT -->
         <main class="flex-1 overflow-y-auto p-5 pb-28 space-y-6">
 
-            <!-- TAB 1: SCHEDULE (原有行程功能) -->
+            <!-- TAB 1: SCHEDULE -->
             <section v-if="currentTab === 'schedule'" class="space-y-6">
                 <!-- Date Selector -->
                 <div class="flex overflow-x-auto space-x-4 pb-4 px-1 hide-scrollbar">
@@ -87,7 +89,7 @@
                             <button @click="editEventItem(item)" class="absolute top-2 right-8 text-xs opacity-30 hover:opacity-100 text-blue-500 p-2"><i class="fas fa-pencil-alt"></i></button>
                             <button @click="deleteEvent(item)" class="absolute top-2 right-2 text-xs opacity-30 hover:opacity-100 text-red-500 p-2">✕</button>
 
-                            <!-- STANDARD ACTIVITY CARD -->
+                            <!-- ACTIVITY CARD -->
                             <div class="flex gap-4">
                                 <div class="flex flex-col items-center min-w-[60px]"><div class="text-xs font-mono opacity-70">{{ item.startTime || '--:--' }}</div><div class="text-xs opacity-30">|</div><div class="text-xs font-mono opacity-70">{{ item.endTime || '' }}</div></div>
                                 <div class="flex-1">
@@ -96,7 +98,7 @@
                                     
                                     <!-- Map Toggle Section -->
                                     <div v-if="item.mapLink" class="mt-3 pt-2 border-t border-gray-500/20 flex gap-2 flex-wrap">
-                                        <button @click="toggleMap(idx)" class="neu-btn px-2 py-1 text-[10px] rounded flex items-center gap-1">
+                                        <button @click="toggleMap(item)" class="neu-btn px-2 py-1 text-[10px] rounded flex items-center gap-1">
                                             <i class="fas" :class="item.showMap ? 'fa-eye-slash' : 'fa-map'"></i> 
                                             {{ item.showMap ? '關閉地圖' : '顯示地圖' }}
                                         </button>
@@ -115,7 +117,7 @@
                 </div>
             </section>
 
-            <!-- TAB 2: MONEY (記帳功能 - 更新版) -->
+            <!-- TAB 2: MONEY -->
             <section v-if="currentTab === 'money'" class="space-y-6">
                 <div class="neu-flat p-6 text-center">
                     <div class="text-xs opacity-50 mb-1">總支出 (TOTAL)</div>
@@ -173,8 +175,6 @@
                                 <div class="text-sm font-mono font-bold">¥{{ (exp.unitPrice * exp.count).toLocaleString() }}</div>
                             </div>
                         </div>
-                        
-                        <!-- Quick Quantity Adjust & Actions -->
                         <div class="flex justify-between items-center border-t border-gray-500/10 pt-2 mt-1">
                             <div class="flex items-center gap-3">
                                 <span class="text-[10px] opacity-50">數量:</span>
@@ -191,20 +191,16 @@
                 </div>
             </section>
 
-            <!-- TAB 3: PACKING (行李清單 - 新增功能) -->
+            <!-- TAB 3: PACKING -->
             <section v-if="currentTab === 'packing'" class="space-y-6">
                 <div class="flex justify-between items-center">
                      <h2 class="text-lg font-bold opacity-70">📦 行李清單</h2>
                      <span class="text-xs opacity-50">已準備 {{ packedCount }}/{{ totalPackingItems }}</span>
                 </div>
-
-                <!-- Add Custom Item -->
                 <div class="neu-flat p-4 flex gap-2">
                     <input v-model="newPackingItem" placeholder="新增物品..." class="neu-input flex-1 p-2 text-sm">
                     <button @click="addPackingItem" class="neu-btn px-4 rounded-lg text-blue-500 font-bold">+</button>
                 </div>
-
-                <!-- Categories -->
                 <div v-for="(items, category) in groupedPackingList" :key="category" class="space-y-2">
                     <h3 class="text-xs font-bold opacity-50 ml-2 uppercase mt-4">{{ category }}</h3>
                     <div v-for="(item, idx) in items" :key="item.id" class="neu-btn p-3 rounded-xl flex items-center justify-between">
@@ -214,8 +210,6 @@
                             </div>
                             <div :class="['text-sm flex-1', item.packed ? 'opacity-40 line-through' : '']">{{ item.name }}</div>
                         </div>
-                        
-                        <!-- Quantity Control -->
                         <div class="flex items-center gap-3 pl-3 border-l border-gray-500/10">
                             <button @click="updatePackingQty(item.id, -1)" class="text-xs opacity-50 hover:opacity-100 px-1">-</button>
                             <span class="text-xs font-mono w-3 text-center">{{ item.qty }}</span>
@@ -226,13 +220,9 @@
                 </div>
             </section>
 
-            <!-- TAB 4: TODO (待辦事項 - 新增功能) -->
+            <!-- TAB 4: TODO -->
             <section v-if="currentTab === 'todo'" class="space-y-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold opacity-70">✅ 待辦事項</h2>
-                </div>
-
-                <!-- Add Todo -->
+                <div class="flex justify-between items-center"><h2 class="text-lg font-bold opacity-70">✅ 待辦事項</h2></div>
                 <div class="neu-flat p-4 space-y-3">
                     <input v-model="newTodo.text" placeholder="要做什麼？(例如: 買保險)" class="neu-input w-full p-2 text-sm">
                     <div class="flex gap-2">
@@ -240,21 +230,15 @@
                         <button @click="addTodo" class="neu-btn px-4 rounded-lg text-sm font-bold text-blue-500">新增</button>
                     </div>
                 </div>
-
-                <!-- Todo List -->
                 <div class="space-y-3 pb-10">
                     <div v-for="(todo, i) in todoList" :key="todo.id" class="neu-pressed p-4 rounded-xl relative group">
-                        
-                        <!-- Header Line -->
                         <div class="flex items-start gap-3">
-                            <!-- Status Toggle Button -->
                             <button @click="cycleTodoStatus(todo)" 
                                 :class="['flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all shadow-sm', 
                                 todo.status === 'done' ? 'bg-green-500/20 text-green-600' : 
                                 todo.status === 'wip' ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-400']">
                                 {{ todo.status === 'done' ? '完' : (todo.status === 'wip' ? '中' : '未') }}
                             </button>
-
                             <div class="flex-1 min-w-0">
                                 <div v-if="editingTodoId === todo.id">
                                     <input v-model="todo.text" class="neu-input w-full p-1 text-sm mb-1">
@@ -266,22 +250,16 @@
                                     <div class="text-xs opacity-60 truncate">{{ todo.note || '無備註' }}</div>
                                 </div>
                             </div>
-
                             <button @click="deleteTodo(todo.id)" class="opacity-20 hover:opacity-100 text-red-500 p-1"><i class="fas fa-times"></i></button>
                         </div>
                     </div>
-                    <div v-if="todoList.length === 0" class="text-center opacity-30 text-xs mt-10">暫無待辦事項</div>
                 </div>
             </section>
-
         </main>
 
         <!-- NAVIGATION -->
         <nav class="absolute bottom-6 left-6 right-6 h-16 neu-flat flex justify-around items-center px-2 z-50 rounded-2xl">
-            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']">
-                <i :class="tab.icon + ' text-xl'"></i>
-                <span v-if="tab.badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']"><i :class="tab.icon + ' text-xl'"></i></button>
         </nav>
         
         <!-- Modal for Events -->
@@ -313,7 +291,7 @@
     </div>
 
    <script>
-        const { createApp, ref, computed } = Vue;
+        const { createApp, ref, computed, onMounted } = Vue;
         
         const defaultTripDays = [
             { dateShort: '1/26', weekDay: 'Mon', weather: { temp: '8°C', icon: '🌙' }, location: '香港 -> 東京', events: [] },
@@ -324,63 +302,57 @@
             { dateShort: '1/31', weekDay: 'Sat', weather: { temp: '9°C', icon: '☀️' }, location: '東京 -> 香港', events: [] },
         ];
 
-        // 預設行李清單
         const defaultPacking = [
             { id: 1, category: '證件錢包', name: '護照', qty: 1, packed: false },
             { id: 2, category: '證件錢包', name: '日元現金', qty: 1, packed: false },
             { id: 3, category: '證件錢包', name: '信用卡 (海外簽賬)', qty: 2, packed: false },
             { id: 4, category: '電子產品', name: '轉插頭', qty: 2, packed: false },
             { id: 5, category: '電子產品', name: '手機充電線', qty: 2, packed: false },
-            { id: 6, category: '電子產品', name: '外置充電器 (尿袋)', qty: 1, packed: false },
+            { id: 6, category: '電子產品', name: '外置充電器', qty: 1, packed: false },
             { id: 7, category: '生活用品', name: '替換衣物', qty: 5, packed: false },
             { id: 8, category: '生活用品', name: '牙刷套裝', qty: 1, packed: false },
         ];
 
         createApp({
             setup() {
-                // 狀態定義
                 const isDarkMode = ref(true);
                 const currentTab = ref('schedule');
                 const selectedDayIndex = ref(0);
                 const showModal = ref(false);
                 const showSettings = ref(false);
-                const exchangeRate = 0.052; // HKD to YEN rate
+                const exchangeRate = 0.052;
                 const importString = ref('');
 
-                // 數據 Refs
                 const tripDays = ref([...defaultTripDays]);
-                const expenses = ref([]); // { id, item, unitPrice, count, method }
+                const expenses = ref([]); 
                 const todoList = ref([{id:1, text:'買旅遊保險', note:'記得保埋電話', status:'pending'}, {id:2, text:'預約 SkyLiner', note:'Klook買', status:'done'}]);
                 const packingList = ref([...defaultPacking]);
 
-                // 臨時變量 (Forms)
                 const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', mapLink: '' });
                 const editingEventIndex = ref(-1);
-                
                 const newExpense = ref({ id: null, unitPrice: '', count: 1, method: 'cash', item: '' });
                 const isEditingExpense = ref(false);
-
                 const newTodo = ref({ text: '', note: '' });
                 const editingTodoId = ref(null);
-
                 const newPackingItem = ref('');
 
-                // Tabs 設定
                 const tabs = [
                     {id: 'schedule', icon: 'fas fa-calendar-alt'},
                     {id: 'money', icon: 'fas fa-wallet'},
-                    {id: 'todo', icon: 'fas fa-clipboard-check'}, // Todo List
-                    {id: 'packing', icon: 'fas fa-suitcase'}, // Packing List
+                    {id: 'todo', icon: 'fas fa-clipboard-check'},
+                    {id: 'packing', icon: 'fas fa-suitcase'},
                 ];
 
-                // --- Computed ---
                 const currentDay = computed(() => tripDays.value[selectedDayIndex.value]);
-                const sortedEvents = computed(() => (currentDay.value?.events || []).sort((a, b) => (a.startTime || '24:00').localeCompare(b.startTime || '24:00')));
                 
-                // 計算總支出：單價 * 數量
+                // CRITICAL FIX: Use [...array] to avoid mutation side-effect in computed property
+                const sortedEvents = computed(() => {
+                    const evts = currentDay.value?.events || [];
+                    return [...evts].sort((a, b) => (a.startTime || '24:00').localeCompare(b.startTime || '24:00'));
+                });
+
                 const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + (Number(item.unitPrice) * Number(item.count)), 0));
                 
-                // 行李分類
                 const groupedPackingList = computed(() => {
                     const groups = {};
                     packingList.value.forEach(item => {
@@ -392,21 +364,22 @@
                 const totalPackingItems = computed(() => packingList.value.length);
                 const packedCount = computed(() => packingList.value.filter(i => i.packed).length);
 
-                // --- Methods ---
-
                 const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light'); };
 
-                // Map & Events
+                // Fix: Initialize theme on mount
+                onMounted(() => {
+                    document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light');
+                });
+
                 const getEmbedUrl = (url) => {
                     if (!url) return '';
-                    if (url.includes('maps.google.com') || url.includes('goo.gl')) return 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828030772635!2d139.7671248152588!3d35.68123618019432!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x60188bfbd89f7007%3A0x277c49ba34ed38!2sTokyo%20Station!5e0!3m2!1sen!2sjp!4v1625555555555!5m2!1sen!2sjp'; // Default dummy for demo, real implementation needs API Key or embed link parsing
-                    return url; // Assume user pastes valid embed src for now or use a generic logic
+                    if (url.includes('maps.google.com') || url.includes('goo.gl')) return 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828!2d139.767!3d35.681!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzXCsDQwJzUyLjUiTiAxMznCsDQ2JzAxLjYiRQ!5e0!3m2!1sen!2sjp!4v1630000000000';
+                    return url; 
                 };
 
-                // FIX 1: Toggle Map
-                const toggleMap = (idx) => {
-                    const event = currentDay.value.events[idx];
-                    event.showMap = !event.showMap;
+                // FIX: Toggle specific item, not by index
+                const toggleMap = (item) => {
+                    item.showMap = !item.showMap;
                 };
 
                 const openEventModal = () => { editingEventIndex.value = -1; newEvent.value = { startTime: '', endTime: '', title: '', desc: '', mapLink: '' }; showModal.value = true; };
@@ -422,84 +395,48 @@
                     showModal.value = false;
                 };
 
-                // FIX 4: Expenses (Updated with Quantity)
                 const addOrUpdateExpense = () => {
                     if(!newExpense.value.unitPrice || !newExpense.value.item) return;
-                    
                     if(isEditingExpense.value && newExpense.value.id) {
                         const idx = expenses.value.findIndex(e => e.id === newExpense.value.id);
                         if(idx !== -1) expenses.value[idx] = { ...newExpense.value };
                         isEditingExpense.value = false;
                     } else {
-                        expenses.value.unshift({ 
-                            id: Date.now(), 
-                            ...newExpense.value 
-                        });
+                        expenses.value.unshift({ id: Date.now(), ...newExpense.value });
                     }
-                    // Reset but keep method
                     newExpense.value = { id: null, unitPrice: '', count: 1, method: newExpense.value.method, item: '' };
                 };
 
                 const editExpense = (id) => {
                     const item = expenses.value.find(e => e.id === id);
-                    if(item) {
-                        newExpense.value = { ...item };
-                        isEditingExpense.value = true;
-                    }
+                    if(item) { newExpense.value = { ...item }; isEditingExpense.value = true; }
                 };
                 
                 const adjustExpenseCount = (id, delta) => {
                     const item = expenses.value.find(e => e.id === id);
-                    if(item) {
-                        item.count = Math.max(1, item.count + delta);
-                    }
+                    if(item) item.count = Math.max(1, item.count + delta);
                 };
 
                 const cancelEditExpense = () => { isEditingExpense.value = false; newExpense.value = { id: null, unitPrice: '', count: 1, method: 'cash', item: '' }; };
                 const deleteExpense = (id) => { expenses.value = expenses.value.filter(e => e.id !== id); };
 
-                // FIX 2: Todo List Logic
                 const addTodo = () => {
                     if(!newTodo.value.text) return;
-                    todoList.value.push({
-                        id: Date.now(),
-                        text: newTodo.value.text,
-                        note: newTodo.value.note,
-                        status: 'pending' // pending, wip, done
-                    });
+                    todoList.value.push({ id: Date.now(), text: newTodo.value.text, note: newTodo.value.note, status: 'pending' });
                     newTodo.value = { text: '', note: '' };
                 };
-                const cycleTodoStatus = (todo) => {
-                    const map = { 'pending': 'wip', 'wip': 'done', 'done': 'pending' };
-                    todo.status = map[todo.status];
-                };
+                const cycleTodoStatus = (todo) => { const map = { 'pending': 'wip', 'wip': 'done', 'done': 'pending' }; todo.status = map[todo.status]; };
                 const deleteTodo = (id) => { todoList.value = todoList.value.filter(t => t.id !== id); };
 
-                // FIX 3: Packing List Logic
-                const togglePacked = (id) => {
-                    const item = packingList.value.find(i => i.id === id);
-                    if(item) item.packed = !item.packed;
-                };
-                const updatePackingQty = (id, delta) => {
-                    const item = packingList.value.find(i => i.id === id);
-                    if(item) {
-                        item.qty = Math.max(1, item.qty + delta);
-                    }
-                };
+                const togglePacked = (id) => { const item = packingList.value.find(i => i.id === id); if(item) item.packed = !item.packed; };
+                const updatePackingQty = (id, delta) => { const item = packingList.value.find(i => i.id === id); if(item) item.qty = Math.max(1, item.qty + delta); };
                 const addPackingItem = () => {
                     if(!newPackingItem.value) return;
-                    packingList.value.push({
-                        id: Date.now(),
-                        category: '自訂',
-                        name: newPackingItem.value,
-                        qty: 1,
-                        packed: false
-                    });
+                    packingList.value.push({ id: Date.now(), category: '自訂', name: newPackingItem.value, qty: 1, packed: false });
                     newPackingItem.value = '';
                 };
                 const deletePackingItem = (id) => { packingList.value = packingList.value.filter(i => i.id !== id); };
 
-                // Data Import/Export
                 const exportData = () => {
                     const data = { days: tripDays.value, expenses: expenses.value, todos: todoList.value, packing: packingList.value };
                     navigator.clipboard.writeText(JSON.stringify(data));
@@ -518,18 +455,11 @@
                 };
 
                 return {
-                    isDarkMode, toggleTheme,
-                    currentTab, tabs,
-                    selectedDayIndex, tripDays, currentDay, sortedEvents,
-                    // Event Actions
+                    isDarkMode, toggleTheme, currentTab, tabs, selectedDayIndex, tripDays, currentDay, sortedEvents,
                     toggleMap, getEmbedUrl, showModal, newEvent, saveCustomEvent, editEventItem, deleteEvent, openEventModal, editingEventIndex,
-                    // Money
                     expenses, newExpense, addOrUpdateExpense, totalSpending, exchangeRate, deleteExpense, editExpense, isEditingExpense, cancelEditExpense, adjustExpenseCount,
-                    // Todo
                     todoList, newTodo, addTodo, cycleTodoStatus, deleteTodo, editingTodoId,
-                    // Packing
                     packingList, groupedPackingList, togglePacked, updatePackingQty, newPackingItem, addPackingItem, deletePackingItem, totalPackingItems, packedCount,
-                    // Settings
                     showSettings, exportData, importData, importString
                 };
             }
