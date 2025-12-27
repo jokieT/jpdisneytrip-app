@@ -133,10 +133,43 @@
                     </div>
                 </div>
             </section>
-           <!-- TAB 2: MAP (SAVED LOCATIONS) - 補回 -->
+           <!-- TAB 2: MAP (SAVED LOCATIONS) - 修復版 -->
             <section v-if="currentTab === 'map'" class="space-y-4">
-                <div class="neu-flat p-4 space-y-3"><h3 class="text-sm font-bold opacity-50">新增地點</h3><input v-model="newLocation.name" placeholder="地點名稱" class="neu-input w-full p-2 text-sm"><input v-model="newLocation.url" placeholder="Google Maps URL" class="neu-input w-full p-2 text-sm"><button @click="addLocation" class="neu-btn w-full py-2 rounded-lg text-sm">儲存地點</button></div>
-                <div class="space-y-2"><div v-for="(loc, idx) in savedLocations" :key="idx" class="neu-btn p-4 rounded-xl flex justify-between items-center"><div @click="openMap(loc.url)" class="flex-1"><div class="text-sm font-bold">{{ loc.name }}</div></div><div class="flex gap-3"><button @click="loc.showEmbed = !loc.showEmbed" class="opacity-50"><i class="fas fa-eye"></i></button><button @click="deleteLocation(idx)" class="text-red-400 opacity-50"><i class="fas fa-trash"></i></button></div><div v-if="loc.showEmbed" class="w-full mt-2 absolute left-0 px-4 z-20"><iframe class="w-full h-40 rounded-lg shadow-xl" :src="getEmbedUrl(loc.url)"></iframe></div></div></div>
+                <div class="neu-flat p-4 space-y-3">
+                    <h3 class="text-sm font-bold opacity-50">新增地點</h3>
+                    <input v-model="newLocation.name" placeholder="地點名稱" class="neu-input w-full p-2 text-sm">
+                    <input v-model="newLocation.url" placeholder="Google Maps URL" class="neu-input w-full p-2 text-sm">
+                    <button @click="addLocation" class="neu-btn w-full py-2 rounded-lg text-sm">儲存地點</button>
+                </div>
+                
+                <div class="space-y-2">
+                    <div v-for="(loc, idx) in savedLocations" :key="idx" class="neu-btn p-4 rounded-xl flex flex-col">
+                        <!-- 上半部：標題與按鈕 -->
+                        <div class="flex justify-between items-center w-full">
+                            <div @click="openMap(loc.url)" class="flex-1 cursor-pointer">
+                                <div class="text-sm font-bold">{{ loc.name }}</div>
+                                <div class="text-[10px] opacity-40 truncate w-48">{{ loc.url }}</div>
+                            </div>
+                            <div class="flex gap-3">
+                                <!-- 眼睛按鈕：控制開關 -->
+                                <button @click="loc.showEmbed = !loc.showEmbed" :class="['transition-colors', loc.showEmbed ? 'text-blue-500' : 'opacity-50']">
+                                    <i :class="loc.showEmbed ? 'fas fa-eye-slash' : 'fas fa-eye'"></i>
+                                </button>
+                                <button @click="deleteLocation(idx)" class="text-red-400 opacity-50">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 下半部：地圖 (現在會把格子撐開，不會遮住按鈕) -->
+                        <div v-if="loc.showEmbed" class="w-full mt-4 rounded-lg overflow-hidden shadow-inner border border-gray-500/10">
+                            <iframe class="w-full h-40" :src="getEmbedUrl(loc.url)" frameborder="0" style="border:0"></iframe>
+                            <div class="text-center bg-gray-500/10 py-1">
+                                <a :href="loc.url" target="_blank" class="text-[10px] text-blue-500 font-bold">開啟 Google Maps App <i class="fas fa-external-link-alt"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- TAB 3: MONEY -->
@@ -168,39 +201,6 @@
                 <div class="space-y-3 pb-10"><div v-for="(todo, i) in todoList" :key="todo.id" class="neu-pressed p-4 rounded-xl relative group"><div class="flex items-start gap-3"><button @click="cycleTodoStatus(todo)" :class="['flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all shadow-sm', todo.status === 'done' ? 'bg-green-500/20 text-green-600' : todo.status === 'wip' ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-400']">{{ todo.status === 'done' ? '完' : (todo.status === 'wip' ? '中' : '未') }}</button><div class="flex-1 min-w-0"><div v-if="editingTodoId === todo.id"><input v-model="todo.text" class="neu-input w-full p-1 text-sm mb-1"><input v-model="todo.note" class="neu-input w-full p-1 text-xs"><button @click="editingTodoId = null" class="text-[10px] text-blue-500 mt-1">完成編輯</button></div><div v-else @click="editingTodoId = todo.id"><div :class="['text-sm font-bold truncate', todo.status === 'done' ? 'line-through opacity-50' : '']">{{ todo.text }}</div><div class="text-xs opacity-60 truncate">{{ todo.note || '無備註' }}</div></div></div><button @click="deleteTodo(todo.id)" class="opacity-20 hover:opacity-100 text-red-500 p-1"><i class="fas fa-times"></i></button></div></div></div>
             </section>
         </main>
-
-        <nav class="absolute bottom-6 left-6 right-6 h-16 neu-flat flex justify-around items-center px-2 z-50 rounded-2xl">
-            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id" :class="['p-3 rounded-xl transition', currentTab === tab.id ? 'text-blue-400 transform scale-110' : 'opacity-50']"><i :class="tab.icon + ' text-xl'"></i></button>
-        </nav>
-        
-        <!-- MODAL (行程) -->
-        <div v-if="showModal" class="fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4">
-            <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
-                <div class="flex justify-between items-center mb-2"><h3 class="font-bold text-lg">{{ editingEventIndex > -1 ? '修改' : '新增' }}</h3>
-                    <!-- 交通/一般 切換按鈕 -->
-                    <div class="flex bg-[var(--input-bg)] rounded-lg p-1">
-                        <button @click="newEvent.isTransport = false" :class="['px-3 py-1 rounded text-xs transition', !newEvent.isTransport ? 'bg-[var(--card-bg)] shadow font-bold' : 'opacity-50']">一般</button>
-                        <button @click="newEvent.isTransport = true" :class="['px-3 py-1 rounded text-xs transition', newEvent.isTransport ? 'bg-blue-500 text-white shadow font-bold' : 'opacity-50']">交通</button>
-                    </div>
-                </div>
-                <div class="flex gap-2"><input type="time" v-model="newEvent.startTime" class="neu-input p-2 flex-1"><input v-if="!newEvent.isTransport" type="time" v-model="newEvent.endTime" class="neu-input p-2 flex-1"></div>
-                <template v-if="!newEvent.isTransport">
-                    <input v-model="newEvent.title" placeholder="標題" class="neu-input w-full p-2"><textarea v-model="newEvent.desc" placeholder="詳情" class="neu-input w-full p-2 h-20"></textarea><input v-model="newEvent.mapLink" placeholder="Google Maps Link" class="neu-input w-full p-2 text-xs">
-                </template>
-                <template v-else>
-                    <div class="grid grid-cols-2 gap-2"><div class="space-y-1"><label class="text-[10px] opacity-50 ml-1">From</label><input v-model="newEvent.title" placeholder="起點" class="neu-input w-full p-2 text-sm"></div><div class="space-y-1"><label class="text-[10px] opacity-50 ml-1">To</label><input v-model="newEvent.toDest" placeholder="終點" class="neu-input w-full p-2 text-sm"></div></div>
-                    <textarea v-model="newEvent.desc" placeholder="路線詳情..." class="neu-input w-full p-2 h-16 text-sm"></textarea><input v-model="newEvent.note" placeholder="出口 / 備註" class="neu-input w-full p-2 text-xs">
-                </template>
-                <div class="flex gap-3 pt-2"><button @click="saveCustomEvent" class="neu-btn flex-1 py-2 rounded-lg font-bold text-blue-500">儲存</button><button @click="showModal = false" class="neu-btn flex-1 py-2 rounded-lg text-red-400">取消</button></div>
-            </div>
-        </div>
-
-        <div v-if="showSettings" class="fixed inset-0 modal-overlay z-[70] flex items-center justify-center p-4">
-            <div class="neu-flat w-full max-w-sm p-6 space-y-4 bg-[var(--card-bg)]">
-                <h3 class="font-bold text-lg mb-2">數據同步</h3><button @click="exportData" class="neu-btn w-full py-2 rounded text-sm text-blue-400">📋 複製數據</button><textarea v-model="importString" placeholder="貼上..." class="neu-input w-full h-24 p-2 text-[10px] font-mono"></textarea><button @click="importData" class="neu-btn w-full py-2 rounded text-sm text-green-500">📥 匯入</button><button @click="showSettings = false" class="neu-btn w-full py-2 rounded-lg text-red-400 mt-4">關閉</button>
-            </div>
-        </div>
-    </div>
   <script>
         const { createApp, ref, computed, onMounted } = Vue;
         const disneyDB = { land: { "World Bazaar": { attractions: ["Omnibus"], restaurants: ["Eastside Cafe", "Waffle Co."], shops: ["Grand Emporium"] }, "Adventureland": { attractions: ["Pirates of Caribbean", "Jungle Cruise"], restaurants: ["Blue Bayou", "Cafe Orleans"], shops: ["Adventureland Bazaar"] }, "Fantasyland": { attractions: ["Beauty and Beast", "Pooh's Hunt", "Haunted Mansion", "Small World"], restaurants: ["Queen of Hearts"], shops: ["Pooh Corner"] }, "Tomorrowland": { attractions: ["Space Mountain", "Monsters Inc"], restaurants: ["Pizza Port"], shops: ["Planet M"] }, "Toontown": { attractions: ["Roger Rabbit"], restaurants: ["Good Time Cafe"], shops: ["Gag Factory"] } }, sea: { "Fantasy Springs": { attractions: ["Frozen Journey", "Rapunzel", "Peter Pan"], restaurants: ["Royal Banquet"], shops: ["Fantasy Springs Gifts"] }, "Mediterranean Harbor": { attractions: ["Soaring", "Gondolas"], restaurants: ["Magellan's"], shops: ["Emporio"] }, "American Waterfront": { attractions: ["Tower of Terror", "Toy Story Mania"], restaurants: ["S.S. Columbia"], shops: ["McDuck's"] }, "Mysterious Island": { attractions: ["Journey to Center of Earth"], restaurants: ["Vulcania"], shops: ["Nautilus Gifts"] } }, hotels: { "MiraCosta": ["Oceano"], "Disneyland Hotel": ["Sherwood Garden"] } };
