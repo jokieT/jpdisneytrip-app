@@ -1,39 +1,32 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-// ==========================================
-// 1. 全局狀態 (Global State)
-// ==========================================
-const activeTab = ref('itinerary') 
+// --- 全局狀態 ---
+const activeTab = ref('itinerary')
 const showSettings = ref(false)
 const tripTitle = ref('TOKYO 2026')
 const tripDate = ref('JAN 26 - JAN 31')
-
-// 地圖狀態
-const activeMapUrl = ref(null) 
+const activeMapUrl = ref(null)
 const activeMapNote = ref('')
 
-// ==========================================
-// 2. 資料 Data
-// ==========================================
+// --- Disney 資料 ---
 const disneyLands = {
   land: [
     { name: '美女與野獸', jp: '美女と野獣', type: 'attraction' },
     { name: '貝馬克斯', jp: 'ベイマックス', type: 'attraction' },
     { name: '巨雷山', jp: 'ビッグサンダー', type: 'attraction' },
     { name: '太空山', jp: 'スペース・マウンテン', type: 'attraction' },
-    { name: '幽靈公館', jp: 'ホーンテッドマンション', type: 'attraction' },
-    { name: '巴斯光年', jp: 'バズ・ライトイヤー', type: 'attraction' }
+    { name: '幽靈公館', jp: 'ホーンテッドマンション', type: 'attraction' }
   ],
   sea: [
     { name: '夢幻奇航', jp: 'ソアリン', type: 'attraction' },
     { name: '玩具總動員', jp: 'トイ・ストーリー', type: 'attraction' },
     { name: '驚魂古塔', jp: 'タワー・オブ・テラー', type: 'attraction' },
-    { name: '印第安納瓊斯', jp: 'インディ・ジョーンズ', type: 'attraction' },
-    { name: '地心探險', jp: 'センター・オブ・ジ・アース', type: 'attraction' }
+    { name: '印第安納瓊斯', jp: 'インディ・ジョーンズ', type: 'attraction' }
   ]
 }
 
+// --- 行程資料 ---
 const itinerary = ref([
   {
     id: 1, day: 'Day 1', date: '1/26',
@@ -51,96 +44,78 @@ const itinerary = ref([
   }
 ])
 
+// --- 行李與 Todo 資料 ---
 const defaultPackingList = [
   { id: 'p1', name: '護照 (Passport)', category: 'docs', count: 1, checked: false },
-  { id: 'p2', name: '日圓現金 (Yen)', category: 'docs', count: 1, checked: false },
-  { id: 'p3', name: 'Credit Cards / Suica', category: 'docs', count: 2, checked: false },
-  { id: 'p4', name: '上網 SIM 卡 / Wifi 蛋', category: 'docs', count: 1, checked: false },
-  { id: 'p5', name: '機票 / 酒店 Printout', category: 'docs', count: 1, checked: false },
-  { id: 'p6', name: '更換衣物 (衫褲)', category: 'clothes', count: 5, checked: false },
-  { id: 'p7', name: '內衣褲 / 襪', category: 'clothes', count: 6, checked: false },
-  { id: 'p8', name: '睡衣', category: 'clothes', count: 1, checked: false },
-  { id: 'p9', name: '外套 / 羽絨', category: 'clothes', count: 1, checked: false },
-  { id: 'p10', name: '電話充電線', category: 'gadgets', count: 2, checked: false },
-  { id: 'p11', name: '日本轉插頭 (兩腳扁頭)', category: 'gadgets', count: 2, checked: false },
-  { id: 'p12', name: '尿袋 (PowerBank)', category: 'gadgets', count: 1, checked: false },
-  { id: 'p13', name: '牙刷 / 牙膏', category: 'personal', count: 1, checked: false },
-  { id: 'p14', name: '個人藥物 (必理痛等)', category: 'personal', count: 1, checked: false },
-  { id: 'p15', name: '護膚品 / 化妝品', category: 'personal', count: 1, checked: false }
+  { id: 'p2', name: '日圓現金', category: 'docs', count: 1, checked: false },
+  { id: 'p3', name: 'Credit Cards', category: 'docs', count: 2, checked: false },
+  { id: 'p4', name: '上網 SIM 卡', category: 'docs', count: 1, checked: false },
+  { id: 'p5', name: '更換衣物', category: 'clothes', count: 5, checked: false },
+  { id: 'p6', name: '內衣褲', category: 'clothes', count: 6, checked: false },
+  { id: 'p7', name: '電話充電線', category: 'gadgets', count: 2, checked: false },
+  { id: 'p8', name: '轉插頭', category: 'gadgets', count: 2, checked: false },
+  { id: 'p9', name: '個人藥物', category: 'personal', count: 1, checked: false }
 ]
 const packingList = ref([...defaultPackingList])
-
 const todos = ref([
   { id: 1, title: '購買旅遊保險', note: '比較幾間先', category: 'prep', status: 'done' },
   { id: 2, title: '預訂 Skyliner 車飛', note: 'Klook 買平啲', category: 'prep', status: 'process' }
 ])
 
+// --- 消費資料 ---
 const expenses = ref([
   { id: 1, title: 'Skyliner 車飛', price: 2570, quantity: 2, type: 'transport' },
   { id: 2, title: '便利店宵夜', price: 1200, quantity: 1, type: 'food' },
   { id: 3, title: '迪士尼門票', price: 9400, quantity: 2, type: 'activity' }
 ])
 
-// Input States
+// --- Input States ---
 const newTime = ref('')
 const newTitle = ref('')
 const newNote = ref('')
 const newMapUrl = ref('')
-const selectedPark = ref('land') 
+const selectedPark = ref('land')
 const selectedFacility = ref('')
-
 const newPackingItemName = ref('')
 const newPackingCategory = ref('others')
-
 const newTodoTitle = ref('')
 const newTodoCategory = ref('prep')
-
 const newExpTitle = ref('')
 const newExpPrice = ref('')
 
-// Editing States
+// --- Edit States ---
 const isEditingTodo = ref(false)
 const editTodoForm = ref({})
 const isEditingExpense = ref(false)
 const editExpenseForm = ref({})
 
-// ==========================================
-// 3. Computed
-// ==========================================
+// --- Computed ---
 const totalExpense = computed(() => expenses.value.reduce((acc, cur) => acc + (cur.price * cur.quantity), 0))
 const packingProgress = computed(() => packingList.value.length ? Math.round((packingList.value.filter(i => i.checked).length / packingList.value.length) * 100) : 0)
 const todoProgress = computed(() => todos.value.length ? Math.round((todos.value.filter(t => t.status === 'done').length / todos.value.length) * 100) : 0)
-
 const packingByCategory = computed(() => {
-  const groups = { docs: { name: '🛂 證件/錢包', items: [] }, clothes: { name: '👕 衣物/穿搭', items: [] }, gadgets: { name: '🔌 電子產品', items: [] }, personal: { name: '🧴 個人護理', items: [] }, others: { name: '📦 其他', items: [] } }
+  const groups = { docs: { name: '🛂 證件', items: [] }, clothes: { name: '👕 衣物', items: [] }, gadgets: { name: '🔌 電子', items: [] }, personal: { name: '🧴 用品', items: [] }, others: { name: '📦 其他', items: [] } }
   packingList.value.forEach(item => { (groups[item.category] || groups.others).items.push(item) })
   return groups
 })
 
-// ==========================================
-// 4. Methods
-// ==========================================
+// --- Methods ---
 const openMap = (url, note) => { if (url) { activeMapUrl.value = url; activeMapNote.value = note || '地圖預覽'; } }
 const closeMap = () => { activeMapUrl.value = null; activeMapNote.value = ''; }
-
 const addDisneyItem = () => { if (selectedFacility.value) { newTitle.value = selectedFacility.value.name + ' ' + selectedFacility.value.jp; newNote.value = '預計排隊時間: -- min'; } }
 const addItem = (dayIndex) => { if (newTitle.value) { itinerary.value[dayIndex].items.push({ id: Date.now(), time: newTime.value || '--:--', title: newTitle.value, type: 'activity', note: newNote.value, mapUrl: newMapUrl.value }); newTitle.value = ''; newTime.value = ''; newNote.value = ''; newMapUrl.value = ''; } }
-
 const addPackingItem = () => { if (newPackingItemName.value) { packingList.value.push({ id: Date.now(), name: newPackingItemName.value, category: newPackingCategory.value, count: 1, checked: false }); newPackingItemName.value = ''; } }
 const updatePackCount = (item, d) => { if (item.count + d > 0) item.count += d }
-
 const addTodo = () => { if (newTodoTitle.value) { todos.value.push({ id: Date.now(), title: newTodoTitle.value, note: '', category: newTodoCategory.value, status: 'pending' }); newTodoTitle.value = ''; } }
 const deleteTodo = (id) => { todos.value = todos.value.filter(t => t.id !== id) }
 const cycleStatus = (t) => { t.status = t.status === 'pending' ? 'process' : (t.status === 'process' ? 'done' : 'pending') }
 const openEditTodo = (t) => { isEditingTodo.value = true; editTodoForm.value = { ...t }; }
 const saveEditTodo = () => { const idx = todos.value.findIndex(t => t.id === editTodoForm.value.id); if (idx !== -1) todos.value[idx] = { ...editTodoForm.value }; isEditingTodo.value = false; }
-
 const addExpense = () => { if (newExpTitle.value && newExpPrice.value) { expenses.value.push({ id: Date.now(), title: newExpTitle.value, price: parseInt(newExpPrice.value), quantity: 1, type: 'food' }); newExpTitle.value = ''; newExpPrice.value = ''; } }
 const updateExpQuantity = (e, d) => { if (e.quantity + d > 0) e.quantity += d }
 const openEditExpense = (e) => { isEditingExpense.value = true; editExpenseForm.value = { ...e }; }
 const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id === editExpenseForm.value.id); if (idx !== -1) expenses.value[idx] = { ...editExpenseForm.value }; isEditingExpense.value = false; }
 </script>
-
 <template>
   <div class="min-h-screen bg-[#1a1b1e] text-gray-200 font-sans pb-28">
     
@@ -150,7 +125,7 @@ const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id =
         <h1 class="text-2xl font-black tracking-widest text-white drop-shadow-md">{{ tripTitle }}</h1>
         <p class="text-xs text-blue-400 font-mono tracking-wide">{{ tripDate }}</p>
       </div>
-      <button @click="showSettings = !showSettings" class="p-2 rounded-full bg-[#25262b] shadow-neumorphism active:shadow-inner transition-all">⚙️</button>
+      <button class="p-2 rounded-full bg-[#25262b] shadow-neumorphism active:shadow-inner transition-all">⚙️</button>
     </header>
 
     <main class="p-4 max-w-lg mx-auto space-y-8">
@@ -177,6 +152,7 @@ const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id =
           <input v-model="newMapUrl" type="text" placeholder="Google Maps Embed URL" class="w-full mb-4 bg-[#1a1b1e] rounded-lg p-3 text-xs border border-gray-700 shadow-inner outline-none text-gray-500">
           <button @click="addItem(0)" class="w-full py-3 rounded-xl bg-blue-600 text-white font-bold shadow-neumorphism hover:bg-blue-500 active:translate-y-0.5 transition-all">加入 Day 1</button>
         </div>
+
         <div v-for="(day, dIndex) in itinerary" :key="dIndex">
           <div class="flex justify-between items-end mb-4 px-2">
             <h2 class="text-xl font-bold text-white">{{ day.day }} <span class="text-sm text-gray-500 font-normal ml-2">{{ day.date }}</span></h2>
@@ -200,8 +176,7 @@ const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id =
           </div>
         </div>
       </div>
-
-      <!-- TAB: PACKING -->
+     <!-- TAB: PACKING -->
       <div v-if="activeTab === 'packing'" class="space-y-6 animate-fade">
         <div class="p-6 rounded-2xl bg-[#25262b] shadow-neumorphism border border-gray-800 relative overflow-hidden">
           <div class="flex justify-between items-end mb-2 relative z-10">
@@ -279,7 +254,6 @@ const saveEditExpense = () => { const idx = expenses.value.findIndex(e => e.id =
     <div v-if="isEditingTodo" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade" @click.self="isEditingTodo = false"><div class="w-full max-w-md bg-[#25262b] rounded-2xl p-6 border border-gray-700"><h3 class="text-white font-bold mb-4">編輯事項</h3><input v-model="editTodoForm.title" class="w-full bg-[#1a1b1e] text-white p-2 rounded border border-gray-700 mb-2"><div class="flex gap-2"><button @click="isEditingTodo = false" class="flex-1 py-2 bg-gray-700 rounded text-gray-300">取消</button><button @click="saveEditTodo" class="flex-1 py-2 bg-blue-600 rounded text-white font-bold">儲存</button></div></div></div>
     
     <div v-if="isEditingExpense" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade" @click.self="isEditingExpense = false"><div class="w-full max-w-md bg-[#25262b] rounded-2xl p-6 border border-gray-700"><h3 class="text-white font-bold mb-4">編輯消費</h3><input v-model="editExpenseForm.title" class="w-full bg-[#1a1b1e] text-white p-2 rounded border border-gray-700 mb-2"><div class="flex gap-2 mb-4"><input v-model="editExpenseForm.price" type="number" class="w-1/2 bg-[#1a1b1e] text-white p-2 rounded border border-gray-700"><input v-model="editExpenseForm.quantity" type="number" class="w-1/2 bg-[#1a1b1e] text-white p-2 rounded border border-gray-700"></div><div class="flex gap-2"><button @click="isEditingExpense = false" class="flex-1 py-2 bg-gray-700 rounded text-gray-300">取消</button><button @click="saveEditExpense" class="flex-1 py-2 bg-blue-600 rounded text-white font-bold">儲存</button></div></div></div>
-
   </div>
 </template>
 
