@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>日本 2026 行程 App (完美完整版)</title>
+    <title>日本 2026 行程 App (自動儲存版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -284,7 +284,8 @@
         </div>
     </div>
   <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        // ★ 引入 watch
+        const { createApp, ref, computed, onMounted, watch } = Vue;
 
         const defaultTripDays = [
             { date: '2026-01-26', dateShort: '1/26', weekDay: 'Mon', location: '香港 -> 東京', parkName: null, weather: { temp: '8°C', icon: '🌙' }, hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' }, flight: { from: 'HKG', fromTerminal: 'T1', to: 'NRT', toTerminal: 'T2', depTime: '09:00', arrTime: '14:00' }, events: [] },
@@ -295,34 +296,7 @@
             { date: '2026-01-31', dateShort: '1/31', weekDay: 'Sat', location: '東京 -> 香港', parkName: null, weather: { temp: '9°C', icon: '☀️' }, hotel: { name: '', address: '' }, flight: { from: 'NRT', fromTerminal: 'T2', to: 'HKG', toTerminal: 'T1', depTime: '18:00', arrTime: '22:30' }, events: [] },
         ];
         
-        createApp({
-            setup() {
-                const isDarkMode = ref(true);
-                const currentTab = ref('schedule');
-                const selectedDayIndex = ref(0);
-                const showModal = ref(false);
-                const showSettings = ref(false);
-                const exchangeRate = 0.052;
-                const importString = ref('');
-                const searchQuery = ref('');
-                const tripDays = ref([...defaultTripDays]);
-                const expenses = ref([]);
-                const todoList = ref([{id:1, text:'買旅遊保險', status:'pending'}]);
-                const packingList = ref([{ id: 1, category: '證件', name: '護照', qty: 1, packed: false }, { id: 2, category: '錢包', name: '日元', qty: 1, packed: false }]);
-                const savedLocations = ref([{ name: '新宿格拉斯麗酒店', url: 'https://goo.gl/maps/example', showEmbed: false }]);
-                const newLocation = ref({ name: '', url: '' });
-
-                const tempDisney = ref({ start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' });
-                const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', mapLink: '', isTransport: false, toDest: '', note: '' });
-                const editingEventIndex = ref(-1);
-                const newExpense = ref({ id: null, unitPrice: '', count: 1, method: 'cash', item: '' });
-                const isEditingExpense = ref(false);
-                const newTodo = ref({ text: '', note: '' });
-                const editingTodoId = ref(null);
-                const newPackingItem = ref('');
-
-                const tabs = [{id: 'schedule', icon: 'fas fa-calendar-alt'}, {id: 'map', icon: 'fas fa-map-marked'}, {id: 'money', icon: 'fas fa-wallet'}, {id: 'packing', icon: 'fas fa-suitcase'}, {id: 'todo', icon: 'fas fa-clipboard-check'}];
-       // ★★★ 迪士尼中英對照資料庫 ★★★
+        // ★ 迪士尼資料庫
         const disneyDB = { 
             land: { 
                 "World Bazaar (世界市集)": { attractions: ["Omnibus (雙層巴士)", "Penny Arcade (便士拱廊)"], restaurants: ["Eastside Cafe (東街咖啡餐館)", "Center Street Coffeehouse (中央大道咖啡餐館)", "Great American Waffle Co. (最佳美國鬆餅公司)", "Restaurant Hokusai (北齋餐廳)", "Sweetheart Cafe (甜心咖啡餐館)"], shops: ["Grand Emporium (格蘭恩波商場)", "World Bazaar Confectionery (世界市集點心坊)", "House of Greetings (致賀屋)"] }, 
@@ -345,7 +319,40 @@
             }, 
             hotels: { "Fantasy Springs Hotel (夢幻泉鄉酒店)": ["Fantasy Springs Restaurant (夢幻泉鄉餐廳 - Buffet)", "Grand Paradis Lounge (格蘭樂園酒廊)", "La Libellule (拉利貝魯 - Grand Chateau Only)"], "Tokyo Disneyland Hotel (樂園酒店)": ["Sherwood Garden Restaurant (雪伍德花園餐廳 - Buffet)", "CANNA (坎納 - Creative Cuisine)", "Dreamers Lounge (夢想家酒廊)"], "Hotel MiraCosta (海洋觀海景酒店)": ["Oceano (海洋宮 - Buffet/Course)", "Silk Road Garden (絲路園 - Chinese)", "BellaVista Lounge (貝拉 vista 酒廊)"], "Disney Ambassador Hotel (大使大飯店)": ["Chef Mickey (米奇大廚 - Buffet/Character Dining)", "Empire Grill (帝國餐廳 - California Cuisine)", "Tick Tock Diner (滴答餐車 - Bakery)", "Hyperion Lounge (海波里恩酒廊)"], "Toy Story Hotel (玩具總動員飯店)": ["Lotso Garden Cafe (熊抱哥花園咖啡 - Buffet)"], "Celebration Hotel (樂祥飯店)": ["Wish Cafe (心願咖啡)", "Discover Cafe (探索咖啡)"] } 
         };
-               const currentDay = computed(() => tripDays.value[selectedDayIndex.value]);
+
+        createApp({
+            setup() {
+                const isDarkMode = ref(true);
+                const currentTab = ref('schedule');
+                const selectedDayIndex = ref(0);
+                const showModal = ref(false);
+                const showSettings = ref(false);
+                const exchangeRate = 0.052;
+                const importString = ref('');
+                const searchQuery = ref('');
+
+                // ★ 從 localStorage 讀取資料
+                const savedData = JSON.parse(localStorage.getItem('tokyoTripData') || '{}');
+
+                const tripDays = ref(savedData.days || [...defaultTripDays]);
+                const expenses = ref(savedData.expenses || []);
+                const todoList = ref(savedData.todos || [{id:1, text:'買旅遊保險', status:'pending'}]);
+                const packingList = ref(savedData.packing || [{ id: 1, category: '證件', name: '護照', qty: 1, packed: false }, { id: 2, category: '錢包', name: '日元', qty: 1, packed: false }]);
+                const savedLocations = ref(savedData.savedLocations || [{ name: '新宿格拉斯麗酒店', url: 'https://goo.gl/maps/example', showEmbed: false }]);
+                
+                const newLocation = ref({ name: '', url: '' });
+                const tempDisney = ref({ start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' });
+                const newEvent = ref({ startTime: '', endTime: '', title: '', desc: '', mapLink: '', isTransport: false, toDest: '', note: '' });
+                const editingEventIndex = ref(-1);
+                const newExpense = ref({ id: null, unitPrice: '', count: 1, method: 'cash', item: '' });
+                const isEditingExpense = ref(false);
+                const newTodo = ref({ text: '', note: '' });
+                const editingTodoId = ref(null);
+                const newPackingItem = ref('');
+
+                const tabs = [{id: 'schedule', icon: 'fas fa-calendar-alt'}, {id: 'map', icon: 'fas fa-map-marked'}, {id: 'money', icon: 'fas fa-wallet'}, {id: 'packing', icon: 'fas fa-suitcase'}, {id: 'todo', icon: 'fas fa-clipboard-check'}];
+
+                const currentDay = computed(() => tripDays.value[selectedDayIndex.value]);
                 const sortedEvents = computed(() => { const evts = currentDay.value?.events || []; return [...evts].sort((a, b) => (a.startTime || '24:00').localeCompare(b.startTime || '24:00')); });
                 const totalSpending = computed(() => expenses.value.reduce((sum, item) => sum + (Number(item.unitPrice) * Number(item.count)), 0));
                 
@@ -360,7 +367,20 @@
                 const packedCount = computed(() => packingList.value.filter(i => i.packed).length);
 
                 const toggleTheme = () => { isDarkMode.value = !isDarkMode.value; document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light'); };
+                
                 onMounted(() => { document.documentElement.setAttribute('data-theme', isDarkMode.value ? 'dark' : 'light'); });
+
+                // ★ 自動儲存監聽器
+                watch([tripDays, expenses, todoList, packingList, savedLocations], () => {
+                    const dataToSave = {
+                        days: tripDays.value,
+                        expenses: expenses.value,
+                        todos: todoList.value,
+                        packing: packingList.value,
+                        savedLocations: savedLocations.value
+                    };
+                    localStorage.setItem('tokyoTripData', JSON.stringify(dataToSave));
+                }, { deep: true });
 
                 // Methods
                 const selectSearchResult = (res) => { tempDisney.value.area = res.raw.area; if(res.raw.area === 'HOTEL_DINING') { tempDisney.value.subArea = res.raw.subArea; } else { if(res.park !== 'HOTEL' && res.raw.park !== currentDay.value.parkName) { alert('此設施位於 ' + res.park + '，請先切換到該日行程。'); return; } tempDisney.value.type = res.raw.type; } tempDisney.value.facility = res.raw.item; searchQuery.value = ''; };
@@ -368,14 +388,14 @@
 
                 const getEmbedUrl = (url) => { if (!url) return ''; if (url.includes('maps.google.com') || url.includes('goo.gl')) return 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828!2d139.767!3d35.681!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzXCsDQwJzUyLjUiTiAxMznCsDQ2JzAxLjYiRQ!5e0!3m2!1sen!2sjp!4v1630000000000'; return url; };
                 
-                // ★★★ 交通導航修正 ★★★
+                // ★ 交通導航修正
                 const getGoogleNavUrl = (item) => { 
                     const origin = encodeURIComponent(item.title); // 起點
                     const dest = encodeURIComponent(item.toDest);  // 終點
                     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=transit`; 
                 };
                 
-                // ★★★ 新增：從文字提取網址 (用於按鈕轉換) ★★★
+                // ★ 新增：從文字提取網址 (用於按鈕轉換)
                 const extractUrl = (text) => { if(!text) return ''; const match = text.match(/(https?:\/\/[^\s]+)/g); return match ? match[0] : ''; };
 
                 const toggleMap = (item) => { item.showMap = !item.showMap; };
@@ -418,7 +438,7 @@
                     savedLocations, addLocation, deleteLocation, openLocation: openMap, newLocation, openMap,
                     showSettings, exportData, importData, importString,
                     disneyDB, tempDisney, currentParkAreas, canSelectFacility, currentFacilityList, searchResults, selectSearchResult, addDisneyEvent, searchQuery,
-                    extractUrl // 匯出新函數
+                    extractUrl 
                 };
             }
         }).mount('#app');
