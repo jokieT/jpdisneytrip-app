@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>日本 2026 行程 App (終極修復版)</title>
+    <title>日本 2026 行程 App (完美修復版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -166,8 +166,9 @@
                                     </div>
                                     <div class="text-xs opacity-70 mt-1 pl-6 border-l-2 border-gray-500/20 ml-1.5 whitespace-pre-line">{{ item.desc }}</div>
                                     <div v-if="item.note" class="text-[10px] text-orange-500 mt-1 ml-6">💡 備註: {{ item.note }}</div>
+                                    <!-- Google Maps Link -->
                                     <a :href="getGoogleNavUrl(item)" target="_blank" class="mt-2 ml-6 inline-block neu-btn px-3 py-1 text-[10px] rounded-full text-blue-500 font-bold">
-                                        <i class="fas fa-location-arrow mr-1"></i> Google 導航
+                                        <i class="fas fa-location-arrow mr-1"></i> Google 導航 (路線)
                                     </a>
                                 </div>
                             </div>
@@ -280,7 +281,29 @@
     </div>
   <script>
         const { createApp, ref, computed, onMounted } = Vue;
-        const disneyDB = { land: { "World Bazaar": { attractions: ["Omnibus"], restaurants: ["Eastside Cafe", "Waffle Co."], shops: ["Grand Emporium"] }, "Adventureland": { attractions: ["Pirates of Caribbean", "Jungle Cruise"], restaurants: ["Blue Bayou", "Cafe Orleans"], shops: ["Adventureland Bazaar"] }, "Fantasyland": { attractions: ["Beauty and Beast", "Pooh's Hunt", "Haunted Mansion", "Small World"], restaurants: ["Queen of Hearts"], shops: ["Pooh Corner"] }, "Tomorrowland": { attractions: ["Space Mountain", "Monsters Inc"], restaurants: ["Pizza Port"], shops: ["Planet M"] }, "Toontown": { attractions: ["Roger Rabbit"], restaurants: ["Good Time Cafe"], shops: ["Gag Factory"] } }, sea: { "Fantasy Springs": { attractions: ["Frozen Journey", "Rapunzel", "Peter Pan"], restaurants: ["Royal Banquet"], shops: ["Fantasy Springs Gifts"] }, "Mediterranean Harbor": { attractions: ["Soaring", "Gondolas"], restaurants: ["Magellan's"], shops: ["Emporio"] }, "American Waterfront": { attractions: ["Tower of Terror", "Toy Story Mania"], restaurants: ["S.S. Columbia"], shops: ["McDuck's"] }, "Mysterious Island": { attractions: ["Journey to Center of Earth"], restaurants: ["Vulcania"], shops: ["Nautilus Gifts"] } }, hotels: { "MiraCosta": ["Oceano"], "Disneyland Hotel": ["Sherwood Garden"] } };
+        // ★★★ 迪士尼中英對照資料庫 ★★★
+        const disneyDB = { 
+            land: { 
+                "World Bazaar (世界市集)": { attractions: ["Omnibus (雙層巴士)", "Penny Arcade (便士拱廊)"], restaurants: ["Eastside Cafe (東街咖啡餐館)", "Center Street Coffeehouse (中央大道咖啡餐館)", "Great American Waffle Co. (最佳美國鬆餅公司)", "Restaurant Hokusai (北齋餐廳)", "Sweetheart Cafe (甜心咖啡餐館)"], shops: ["Grand Emporium (格蘭恩波商場)", "World Bazaar Confectionery (世界市集點心坊)", "House of Greetings (致賀屋)"] }, 
+                "Adventureland (探險樂園)": { attractions: ["Pirates of the Caribbean (加勒比海盜)", "Jungle Cruise (叢林巡航)", "Western River Railroad (西部沿河鐵路)", "The Enchanted Tiki Room (提基神殿)"], restaurants: ["Blue Bayou Restaurant (藍海灣餐廳)", "Crystal Palace Restaurant (水晶宮餐廳)", "Polynesian Terrace (波利尼西亞草壇餐廳)", "China Voyager (中華餐廳)", "Cafe Orleans (奧爾良咖啡)"], shops: ["Adventureland Bazaar (探險樂園市集)", "Le Marche Bleu (藍色市集)", "Cristal Arts (水晶藝術)"] }, 
+                "Westernland (西部樂園)": { attractions: ["Big Thunder Mountain (巨雷山)", "Country Bear Theater (鄉村頑熊劇場)", "Mark Twain Riverboat (馬克吐溫號)", "Tom Sawyer Island (湯姆索亞島)"], restaurants: ["Hungry Bear Restaurant (頑熊餐廳)", "Plaza Pavilion Restaurant (廣場樓閣餐廳)", "Pecos Bill Cafe (佩斯比爾小館)", "Camp Woodchuck Kitchen (土撥鼠營地廚房)"], shops: ["Western Wear (西部服裝)", "General Store (雜貨店)"] }, 
+                "Critter Country (動物天地)": { attractions: ["Splash Mountain (飛濺山)", "Beaver Brothers Explorer Canoes (海貍兄弟獨木舟)"], restaurants: ["Grandma Sara's Kitchen (莎拉阿奶奶的廚房)", "Rackety's Raccoon Saloon (拉吉蒂浣熊小站)"], shops: ["Hoot & Holler Hideout (呼嗒·赫勒窩)"] }, 
+                "Fantasyland (夢幻樂園)": { attractions: ["Enchanted Tale of Beauty and the Beast (美女與野獸)", "Pooh's Hunny Hunt (小熊維尼獵蜜記)", "Haunted Mansion (幽靈公館)", "It's a Small World (小小世界)", "Peter Pan's Flight (彼得潘)", "Pinocchio's Daring Journey (小木偶奇遇記)", "Snow White's Adventures (白雪公主冒險旅程)", "Dumbo (小飛象)", "Cinderella's Fairy Tale Hall (仙履奇緣童話大廳)"], restaurants: ["Queen of Hearts Banquet Hall (紅心女王宴會大廳)", "La Taverne de Gaston (加斯頓酒館)", "Captain Hook's Galley (虎克船長的廚房)", "Village Pastry (鄉村糕點)"], shops: ["Village Shoppes (鄉村商店)", "Kingdom Treasures (王國寶藏)", "Pooh Corner (小熊維尼專櫃)"] }, 
+                "Toontown (卡通城)": { attractions: ["Roger Rabbit's Car Toon Spin (羅傑兔子轉轉車)", "Minnie's Style Studio (米妮時尚工作室)", "Gadget's Go Coaster (艾芝迷你雲霄飛車)"], restaurants: ["Huey, Dewey and Louie's Good Time Cafe (輝兒杜兒路兒好時光咖啡)", "Toontone Treats (卡通漆彩點心)"], shops: ["Gag Factory (滑稽工廠)"] }, 
+                "Tomorrowland (明日樂園)": { attractions: ["Space Mountain (太空山)", "Star Tours (星際旅行)", "Monsters, Inc. Ride & Go Seek! (怪獸電力公司)", "Baymax Happy Ride (杯麵歡樂搭)", "Buzz Lightyear's Astro Blasters (巴斯光年星際歷險)"], restaurants: ["Pan Galactic Pizza Port (汎銀河披薩港)", "Plazma Ray's Diner (瑞斯瑪射線快餐)", "The Big Pop (霹靂啪啦爆米花)"], shops: ["Planet M (行星M)", "Cosmic Encounter (宇宙相遇)"] } 
+            }, 
+            sea: { 
+                "Fantasy Springs (夢幻泉鄉)": { attractions: ["Anna and Elsa's Frozen Journey (安娜與艾莎的冰雪之旅)", "Rapunzel's Lantern Festival (樂佩公主天燈盛會)", "Peter Pan's Never Land Adventure (彼得潘夢幻島歷險記)", "Fairy Tinker Bell's Busy Buggies (奇妙仙子妙妙車)"], restaurants: ["Royal Banquet of Arendelle (艾倫戴爾皇家宴會廳)", "The Snuggly Duckling (醜小鴨小館)", "Lookout Cookout (瞭望臺野餐屋)"], shops: ["Fantasy Springs Gifts (夢幻泉鄉禮品)"] }, 
+                "Mediterranean Harbor (地中海港灣)": { attractions: ["Soaring: Fantastic Flight (翱翔：夢幻奇航)", "DisneySea Transit Steamer Line (迪士尼海洋渡輪)", "Fortress Explorations (要塞探險)", "Venetian Gondolas (威尼斯貢多拉遊船)"], restaurants: ["Magellan's (麥哲倫)", "Ristorante di Canaletto (卡納雷托餐廳)", "Zambini Brothers' Ristorante (尚比尼兄弟餐廳)", "Cafe Portofino (波多菲諾咖啡)", "Oceano (海洋宮 - MiraCosta)"], shops: ["Emporio (恩波利歐)", "Il Postino Stationery (郵局文具店)"] }, 
+                "American Waterfront (美國海濱)": { attractions: ["Tower of Terror (驚魂古塔)", "Toy Story Mania! (玩具總動員瘋狂遊戲屋)", "Turtle Talk (龜龜漫談)", "Big City Vehicles (大都會交通工具)"], restaurants: ["S.S. Columbia Dining Room (S.S.哥倫比亞餐廳)", "Teddy Roosevelt Lounge (泰迪羅斯福歡腾)", "New York Deli (紐約美味房)", "Cape Cod Cook-Off (鱈魚岬錦標美食)", "Restaurant Sakura (櫻花餐廳)"], shops: ["McDuck's Department Store (史高治百貨公司)", "Steamboat Mickey's (蒸氣船米奇)"] }, 
+                "Port Discovery (發現港)": { attractions: ["Nemo & Friends SeaRider (尼莫&好友的海洋世界)", "Aquatopia (水上逗趣船)"], restaurants: ["Horizon Bay Restaurant (水平線海灣餐廳)", "Seaside Snacks (海邊小吃)"], shops: ["Discovery Gifts (發現禮品)"] }, 
+                "Lost River Delta (失落河三角洲)": { attractions: ["Indiana Jones Adventure (印第安納瓊斯冒險旅程)", "Raging Spirits (忿怒雙神)"], restaurants: ["Yucatan Base Camp Grill (猶加敦基地營燒烤)", "Miguel's El Dorado Cantina (米格勒黃金國快餐店)"], shops: ["Lost River Outfitters (失落河探險用品)"] }, 
+                "Arabian Coast (阿拉伯海岸)": { attractions: ["Sinbad's Storybook Voyage (辛巴達傳奇之旅)", "The Magic Lamp Theater (神燈劇場)", "Jasmine's Flying Carpets (茉莉公主的飛天魔毯)", "Caravan Carousel (沙漠商隊旋轉木馬)"], restaurants: ["Casbah Food Court (卡斯巴美食廣場)", "Sultan's Oasis (蘇丹綠洲)"], shops: ["Agrabah Marketplace (阿格拉巴市場)"] }, 
+                "Mermaid Lagoon (美人魚礁湖)": { attractions: ["Mermaid Lagoon Theater (美人魚礁湖劇場)", "Flounder's Flying Fish Coaster (小胖的飛魚雲霄飛車)", "Scuttle's Scooters (史卡托的寄居蟹)", "Jumpin' Jellyfish (跳躍水母)", "Blowfish Balloon Race (河豚氣球競賽)", "The Whirlpool (旋轉海藻杯)"], restaurants: ["Sebastian's Calypso Kitchen (賽巴斯丁加力骚廚房)"], shops: ["Sleepy Whale Shoppe (睡鯨商店)", "Kiss de Girl Fashions (吻之女孩服飾)"] }, 
+                "Mysterious Island (神秘島)": { attractions: ["Journey to the Center of the Earth (地心探險之旅)", "20,000 Leagues Under the Sea (海底兩萬哩)"], restaurants: ["Vulcania Restaurant (火山餐廳)", "Nautilus Galley (鸚鵡螺號大食堂)"], shops: ["Nautilus Gifts (鸚鵡螺號禮品)"] } 
+            }, 
+            hotels: { "Fantasy Springs Hotel (夢幻泉鄉酒店)": ["Fantasy Springs Restaurant (夢幻泉鄉餐廳 - Buffet)", "Grand Paradis Lounge (格蘭樂園酒廊)", "La Libellule (拉利貝魯 - Grand Chateau Only)"], "Tokyo Disneyland Hotel (樂園酒店)": ["Sherwood Garden Restaurant (雪伍德花園餐廳 - Buffet)", "CANNA (坎納 - Creative Cuisine)", "Dreamers Lounge (夢想家酒廊)"], "Hotel MiraCosta (海洋觀海景酒店)": ["Oceano (海洋宮 - Buffet/Course)", "Silk Road Garden (絲路園 - Chinese)", "BellaVista Lounge (貝拉 vista 酒廊)"], "Disney Ambassador Hotel (大使大飯店)": ["Chef Mickey (米奇大廚 - Buffet/Character Dining)", "Empire Grill (帝國餐廳 - California Cuisine)", "Tick Tock Diner (滴答餐車 - Bakery)", "Hyperion Lounge (海波里恩酒廊)"], "Toy Story Hotel (玩具總動員飯店)": ["Lotso Garden Cafe (熊抱哥花園咖啡 - Buffet)"], "Celebration Hotel (樂祥飯店)": ["Wish Cafe (心願咖啡)", "Discover Cafe (探索咖啡)"] } 
+        };
 
         const defaultTripDays = [
             { date: '2026-01-26', dateShort: '1/26', weekDay: 'Mon', location: '香港 -> 東京', parkName: null, weather: { temp: '8°C', icon: '🌙' }, hotel: { name: '新宿格拉斯麗酒店', address: '1-19-1 Kabukicho' }, flight: { from: 'HKG', fromTerminal: 'T1', to: 'NRT', toTerminal: 'T2', depTime: '09:00', arrTime: '14:00' }, events: [] },
@@ -341,7 +364,13 @@
                 const addDisneyEvent = () => { if (!tempDisney.value.facility) return; currentDay.value.events.push({ startTime: tempDisney.value.start, endTime: tempDisney.value.end, title: tempDisney.value.facility, desc: tempDisney.value.area === 'HOTEL_DINING' ? '🏨 ' + tempDisney.value.subArea : tempDisney.value.area + ' - ' + tempDisney.value.type, note: tempDisney.value.note, showMap: false }); tempDisney.value = { start: '', end: '', area: '', subArea: '', type: '', facility: '', note: '' }; };
 
                 const getEmbedUrl = (url) => { if (!url) return ''; if (url.includes('maps.google.com') || url.includes('goo.gl')) return 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3240.828!2d139.767!3d35.681!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzXCsDQwJzUyLjUiTiAxMznCsDQ2JzAxLjYiRQ!5e0!3m2!1sen!2sjp!4v1630000000000'; return url; };
-                const getGoogleNavUrl = (item) => { return `https://www.google.com/maps/dir/?api=1&destination=${item.toDest || item.title}`; };
+                
+                // ★★★ 交通導航修正 ★★★
+                const getGoogleNavUrl = (item) => { 
+                    const origin = encodeURIComponent(item.title); // 起點
+                    const dest = encodeURIComponent(item.toDest);  // 終點
+                    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=transit`; 
+                };
                 const toggleMap = (item) => { item.showMap = !item.showMap; };
 
                 // Map Tab Logic
